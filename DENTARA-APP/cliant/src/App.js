@@ -1,13 +1,13 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
+import Home from './pages/Home/Home';
+import Login from './pages/Home/Login';
+import Signup from './pages/Home/Signup';
 import './App.css';
-import DoctorDashboard from './components/DoctorDashboard/DoctorDashboard';
-import DoctorHome from './components/DoctorDashboard/DoctorHome';
-import DoctorSchedule from './components/DoctorDashboard/DoctorSchedule';
+import DoctorDashboard from './pages/Doctor/DoctorDashboard';
+import DoctorHome from './pages/Doctor/DoctorHome';
+import DoctorSchedule from './pages/Doctor/DoctorSchedule';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
