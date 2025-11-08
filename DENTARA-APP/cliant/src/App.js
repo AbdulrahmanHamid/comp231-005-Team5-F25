@@ -1,10 +1,13 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
+import Home from './pages/Home/Home';
+import Login from './pages/Home/Login';
+import Signup from './pages/Home/Signup';
 import './App.css';
+import DoctorDashboard from './pages/Doctor/DoctorDashboard';
+import DoctorHome from './pages/Doctor/DoctorHome';
+import DoctorSchedule from './pages/Doctor/DoctorSchedule';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -47,30 +50,6 @@ const StaffDashboard = () => {
   );
 };
 
-const DoctorDashboard = () => {
-  const { logout } = useAuth();
-  return (
-    <div style={{ padding: '40px', textAlign: 'center' }}>
-      <h1>Doctor Dashboard</h1>
-      <p>Welcome! This is your Doctor Dashboard.</p>
-      <button 
-        onClick={logout}
-        style={{
-          padding: '12px 30px',
-          fontSize: '16px',
-          backgroundColor: '#7c5cce',
-          color: 'white',
-          border: 'none',
-          borderRadius: '25px',
-          cursor: 'pointer',
-          marginTop: '20px'
-        }}
-      >
-        Logout
-      </button>
-    </div>
-  );
-};
 
 const ManagerDashboard = () => {
   const { logout } = useAuth();
@@ -107,37 +86,43 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
 
-          {/* Protected Routes - Staff */}
-          <Route 
-            path="/staff-dashboard" 
+          {/* Staff Dashboard */}
+          <Route
+            path="/staff-dashboard"
             element={
               <ProtectedRoute allowedRoles={['staff']}>
                 <StaffDashboard />
               </ProtectedRoute>
-            } 
+            }
           />
 
-          {/* Protected Routes - Doctor */}
-          <Route 
-            path="/doctor-dashboard" 
+          {/* Doctor Dashboard (Nested Routes) */}
+          <Route
+            path="/doctor-dashboard"
             element={
               <ProtectedRoute allowedRoles={['doctor']}>
                 <DoctorDashboard />
               </ProtectedRoute>
-            } 
-          />
+            }
+          >
+            {/* Default route → Home */}
+            <Route index element={<Navigate to="home" />} />
+            <Route path="home" element={<DoctorHome />} />
+            {<Route path="schedule" element={<DoctorSchedule />} /> }
+           
+          </Route>
 
-          {/* Protected Routes - Manager */}
-          <Route 
-            path="/manager-dashboard" 
+          {/* Manager Dashboard */}
+          <Route
+            path="/manager-dashboard"
             element={
               <ProtectedRoute allowedRoles={['manager']}>
                 <ManagerDashboard />
               </ProtectedRoute>
-            } 
+            }
           />
 
-          {/* Catch all - redirect to home */}
+          {/* Catch-All Route */}
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </AuthProvider>
