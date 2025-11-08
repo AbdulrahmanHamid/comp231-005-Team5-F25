@@ -6,6 +6,8 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import './App.css';
 import DoctorDashboard from './components/DoctorDashboard/DoctorDashboard';
+import DoctorHome from './components/DoctorDashboard/DoctorHome';
+import DoctorSchedule from './components/DoctorDashboard/DoctorSchedule';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -84,37 +86,43 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
 
-          {/* Protected Routes - Staff */}
-          <Route 
-            path="/staff-dashboard" 
+          {/* Staff Dashboard */}
+          <Route
+            path="/staff-dashboard"
             element={
               <ProtectedRoute allowedRoles={['staff']}>
                 <StaffDashboard />
               </ProtectedRoute>
-            } 
+            }
           />
 
-          {/* Protected Routes - Doctor */}
-          <Route 
-            path="/doctor-dashboard" 
+          {/* Doctor Dashboard (Nested Routes) */}
+          <Route
+            path="/doctor-dashboard"
             element={
               <ProtectedRoute allowedRoles={['doctor']}>
                 <DoctorDashboard />
               </ProtectedRoute>
-            } 
-          />
+            }
+          >
+            {/* Default route → Home */}
+            <Route index element={<Navigate to="home" />} />
+            <Route path="home" element={<DoctorHome />} />
+            {<Route path="schedule" element={<DoctorSchedule />} /> }
+           
+          </Route>
 
-          {/* Protected Routes - Manager */}
-          <Route 
-            path="/manager-dashboard" 
+          {/* Manager Dashboard */}
+          <Route
+            path="/manager-dashboard"
             element={
               <ProtectedRoute allowedRoles={['manager']}>
                 <ManagerDashboard />
               </ProtectedRoute>
-            } 
+            }
           />
 
-          {/* Catch all - redirect to home */}
+          {/* Catch-All Route */}
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </AuthProvider>
