@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import './App.css';
+import DoctorDashboard from './components/DoctorDashboard/DoctorDashboard';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -47,30 +48,6 @@ const StaffDashboard = () => {
   );
 };
 
-const DoctorDashboard = () => {
-  const { logout } = useAuth();
-  return (
-    <div style={{ padding: '40px', textAlign: 'center' }}>
-      <h1>Doctor Dashboard</h1>
-      <p>Welcome! This is your Doctor Dashboard.</p>
-      <button 
-        onClick={logout}
-        style={{
-          padding: '12px 30px',
-          fontSize: '16px',
-          backgroundColor: '#7c5cce',
-          color: 'white',
-          border: 'none',
-          borderRadius: '25px',
-          cursor: 'pointer',
-          marginTop: '20px'
-        }}
-      >
-        Logout
-      </button>
-    </div>
-  );
-};
 
 const ManagerDashboard = () => {
   const { logout } = useAuth();
