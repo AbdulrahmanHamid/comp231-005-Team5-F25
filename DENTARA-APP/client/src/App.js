@@ -8,6 +8,7 @@ import './App.css';
 import DoctorDashboard from './pages/Doctor/DoctorDashboard';
 import DoctorHome from './pages/Doctor/DoctorHome';
 import DoctorSchedule from './pages/Doctor/DoctorSchedule';
+import DoctorPatients from './pages/Doctor/DoctorPatients';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -105,11 +106,11 @@ function App() {
               </ProtectedRoute>
             }
           >
-            {/* Default route → Home */}
+           {/* Default route → Home */}
             <Route index element={<Navigate to="home" />} />
             <Route path="home" element={<DoctorHome />} />
             {<Route path="schedule" element={<DoctorSchedule />} /> }
-           
+            <Route path="patients/*" element={<DoctorPatients />} />
           </Route>
 
           {/* Manager Dashboard */}
