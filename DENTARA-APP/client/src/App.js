@@ -9,6 +9,8 @@ import DoctorDashboard from './pages/Doctor/DoctorDashboard';
 import DoctorHome from './pages/Doctor/DoctorHome';
 import DoctorSchedule from './pages/Doctor/DoctorSchedule';
 import DoctorPatients from './pages/Doctor/DoctorPatients';
+import ClinicDashboard from './pages/Clinic/ClinicDashboard';
+
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -92,7 +94,7 @@ function App() {
             path="/staff-dashboard"
             element={
               <ProtectedRoute allowedRoles={['staff']}>
-                <StaffDashboard />
+                <ClinicDashboard />
               </ProtectedRoute>
             }
           />
