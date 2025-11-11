@@ -12,23 +12,23 @@ const Signup = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validation
     if (!role || !email || !password || !confirmPassword) {
       setError('Please fill in all fields');
       return;
     }
-    
+
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
-    
+
     if (password.length < 6) {
       setError('Password must be at least 6 characters');
       return;
@@ -37,22 +37,23 @@ const Signup = () => {
     try {
       setError('');
       setLoading(true);
-      
+
       // Create user in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      
+
       // Save user role in Firestore
       await setDoc(doc(db, 'users', user.uid), {
         email: email,
         role: role,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        profileCompleted: false
       });
-      
-      // Navigate to login page after successful signup
-      alert('Account created successfully! Please log in.');
-      navigate('/login');
-      
+
+      // Navigate to profile completion
+      navigate('/complete-profile');
+
+
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') {
         setError('This email is already registered');
@@ -62,7 +63,7 @@ const Signup = () => {
         setError('Failed to create account: ' + err.message);
       }
     }
-    
+
     setLoading(false);
   };
 
@@ -73,15 +74,15 @@ const Signup = () => {
           <h1>DENTARA</h1>
         </div>
       </div>
-      
+
       <div className="signup-right">
         <div className="star-icon">✦</div>
         <h1>Welcome!</h1>
         <p className="subtitle">Please enter your details</p>
-        
+
         <form onSubmit={handleSubmit}>
           {error && <div className="error-message">{error}</div>}
-          
+
           <div className="form-group">
             <label>Role</label>
             <select
@@ -96,7 +97,7 @@ const Signup = () => {
               <option value="manager">Manager</option>
             </select>
           </div>
-          
+
           <div className="form-group">
             <label>Email</label>
             <input
@@ -107,7 +108,7 @@ const Signup = () => {
               disabled={loading}
             />
           </div>
-          
+
           <div className="form-row">
             <div className="form-group half">
               <label>Password</label>
@@ -120,7 +121,7 @@ const Signup = () => {
               />
               <span className="eye-icon">👁️</span>
             </div>
-            
+
             <div className="form-group half">
               <label>Confirm Password</label>
               <input
@@ -133,13 +134,13 @@ const Signup = () => {
               <span className="eye-icon">👁️</span>
             </div>
           </div>
-          
+
           <button type="submit" className="btn-create" disabled={loading}>
             {loading ? 'Creating Account...' : 'Create Account'}
           </button>
-          
-          <button 
-            type="button" 
+
+          <button
+            type="button"
             className="btn-login"
             onClick={() => navigate('/login')}
             disabled={loading}

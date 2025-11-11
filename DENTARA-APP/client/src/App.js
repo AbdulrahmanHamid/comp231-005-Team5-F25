@@ -4,13 +4,13 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Home from './pages/Home/Home';
 import Login from './pages/Home/Login';
 import Signup from './pages/Home/Signup';
-import './App.css';
+import UserProfile from './pages/Home/UserProfile';
 import DoctorDashboard from './pages/Doctor/DoctorDashboard';
 import DoctorHome from './pages/Doctor/DoctorHome';
 import DoctorSchedule from './pages/Doctor/DoctorSchedule';
 import DoctorPatients from './pages/Doctor/DoctorPatients';
 import ClinicDashboard from './pages/Clinic/ClinicDashboard';
-
+import './App.css';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -27,7 +27,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   return children;
 };
 
-// Temporary Dashboard Components (we'll build these properly next)
+// Temporary Dashboard Components
 const StaffDashboard = () => {
   const { logout } = useAuth();
   return (
@@ -52,7 +52,6 @@ const StaffDashboard = () => {
     </div>
   );
 };
-
 
 const ManagerDashboard = () => {
   const { logout } = useAuth();
@@ -89,6 +88,16 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
 
+          {/* Profile Completion (Protected) */}
+          <Route 
+            path="/complete-profile" 
+            element={
+              <ProtectedRoute allowedRoles={['staff', 'doctor', 'manager']}>
+                <UserProfile />
+              </ProtectedRoute>
+            } 
+          />
+
           {/* Staff Dashboard */}
           <Route
             path="/staff-dashboard"
@@ -108,10 +117,10 @@ function App() {
               </ProtectedRoute>
             }
           >
-           {/* Default route → Home */}
+            {/* Default route → Home */}
             <Route index element={<Navigate to="home" />} />
             <Route path="home" element={<DoctorHome />} />
-            {<Route path="schedule" element={<DoctorSchedule />} /> }
+            <Route path="schedule" element={<DoctorSchedule />} />
             <Route path="patients/*" element={<DoctorPatients />} />
           </Route>
 
