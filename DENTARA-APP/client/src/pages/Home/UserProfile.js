@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase/firebaseConfig';
-import { useAuth } from '../contexts/AuthContext';
-import '../styles/UserProfile.css';
+import { db } from '../../firebase/firebaseConfig';
+import { useAuth } from '../../contexts/AuthContext';
+import '../../styles/UserProfile.css';
 
 const UserProfile = () => {
   const [firstName, setFirstName] = useState('');
