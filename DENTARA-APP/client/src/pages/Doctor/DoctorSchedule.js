@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { collection, query, where, getDocs, addDoc, updateDoc, doc } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, updateDoc, doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase/firebaseConfig";
+import { getTodayLocal } from "../../utils/dateUtils";
 import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import "../../styles/DoctorSchedule.css";
+
 
 const DoctorSchedule = () => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [appointments, setAppointments] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [patients, setPatients] = useState([]);
+  const [doctorName, setDoctorName] = useState('');
+  const [selectedDate, setSelectedDate] = useState(getTodayLocal());
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -15,16 +21,51 @@ const DoctorSchedule = () => {
     cancelled: 0
   });
   const [loading, setLoading] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  const [formData, setFormData] = useState({
+    patientId: '',
+    time: '',
+    reason: '',
+    room: ''
+  });
 
   useEffect(() => {
     fetchAppointments();
+    fetchPatients();
+    fetchDoctorName();
   }, [selectedDate, currentUser]);
+
+  const fetchDoctorName = async () => {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        setDoctorName(`Dr. ${userData.firstName} ${userData.lastName}`);
+      }
+    } catch (error) {
+      console.error('Error fetching doctor name:', error);
+      setDoctorName('Dr. User');
+    }
+  };
+
+  const fetchPatients = async () => {
+    try {
+      const patientsSnapshot = await getDocs(collection(db, 'patients'));
+      const patientsData = patientsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setPatients(patientsData);
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+    }
+  };
 
   const fetchAppointments = async () => {
     try {
       setLoading(true);
 
-      // Query appointments for selected date and current doctor
       const appointmentsQuery = query(
         collection(db, 'appointments'),
         where('doctorId', '==', currentUser.uid),
@@ -37,7 +78,6 @@ const DoctorSchedule = () => {
         ...doc.data()
       }));
 
-      // Sort by time
       appointmentsData.sort((a, b) => {
         const timeA = new Date(`1970-01-01 ${a.time}`);
         const timeB = new Date(`1970-01-01 ${b.time}`);
@@ -46,7 +86,6 @@ const DoctorSchedule = () => {
 
       setAppointments(appointmentsData);
 
-      // Calculate stats
       const total = appointmentsData.length;
       const pending = appointmentsData.filter(a => a.status === 'Pending' || a.status === 'Confirmed').length;
       const completed = appointmentsData.filter(a => a.status === 'Completed').length;
@@ -60,13 +99,43 @@ const DoctorSchedule = () => {
     }
   };
 
+  const handleAddAppointment = async (e) => {
+    e.preventDefault();
+
+    if (!formData.patientId || !formData.time || !formData.reason) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const selectedPatient = patients.find(p => p.id === formData.patientId);
+
+      await addDoc(collection(db, 'appointments'), {
+        patientId: formData.patientId,
+        patientName: `${selectedPatient.firstName} ${selectedPatient.lastName}`,
+        doctorId: currentUser.uid,
+        date: selectedDate,
+        time: formData.time,
+        reason: formData.reason,
+        room: formData.room || 'TBD',
+        status: 'Confirmed',
+        createdAt: new Date().toISOString()
+      });
+
+      alert('Appointment added successfully!');
+      setShowAddForm(false);
+      setFormData({ patientId: '', time: '', reason: '', room: '' });
+      fetchAppointments();
+    } catch (error) {
+      console.error('Error adding appointment:', error);
+      alert('Failed to add appointment');
+    }
+  };
+
   const handleStartAppointment = async (appointmentId) => {
     try {
       const appointmentRef = doc(db, 'appointments', appointmentId);
-      await updateDoc(appointmentRef, {
-        status: 'In Progress'
-      });
-      // Refresh appointments
+      await updateDoc(appointmentRef, { status: 'In Progress' });
       fetchAppointments();
     } catch (error) {
       console.error('Error updating appointment:', error);
@@ -76,51 +145,47 @@ const DoctorSchedule = () => {
   const handleCompleteAppointment = async (appointmentId) => {
     try {
       const appointmentRef = doc(db, 'appointments', appointmentId);
-      await updateDoc(appointmentRef, {
-        status: 'Completed'
-      });
-      // Refresh appointments
+      await updateDoc(appointmentRef, { status: 'Completed' });
       fetchAppointments();
     } catch (error) {
       console.error('Error completing appointment:', error);
     }
   };
 
+  const handleViewPatient = (patientId) => {
+    navigate(`/doctor-dashboard/patients/${patientId}`);
+  };
+
+  const getStatusClass = (status) => {
+    switch (status) {
+      case 'Completed': return 'status-badge status-completed';
+      case 'Pending': return 'status-badge status-pending';
+      case 'Confirmed': return 'status-badge status-confirmed';
+      case 'In Progress': return 'status-badge status-in-progress';
+      default: return 'status-badge status-cancelled';
+    }
+  };
+
   return (
     <div className="doctor-schedule-page">
-      {/* Header */}
       <div className="schedule-header">
         <h2>Today's Schedule</h2>
         <span className="doctor-name">
-          {currentUser ? `Dr. ${currentUser.email.split('@')[0]}` : "Dr. [Name]"}
+          {doctorName || "Loading..."}
         </span>
       </div>
 
-      {/* Filter & Content */}
       <div className="schedule-container">
-        {/* Date selector */}
         <div className="date-row">
-          <input 
-            type="date" 
+          <input
+            type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
             className="date-btn"
-            style={{
-              padding: '8px 15px',
-              fontSize: '14px',
-              borderRadius: '5px',
-              border: 'none',
-              backgroundColor: '#5bbf84',
-              color: 'white',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
           />
         </div>
 
-        {/* Schedule panels */}
         <div className="schedule-panels">
-          {/* Summary Column */}
           <div className="summary-box">
             <h3>Summary</h3>
             <ul>
@@ -131,7 +196,6 @@ const DoctorSchedule = () => {
             </ul>
           </div>
 
-          {/* Appointment List */}
           <div className="appointments-box">
             <h3>Appointments List</h3>
             {loading ? (
@@ -158,41 +222,32 @@ const DoctorSchedule = () => {
                       <td>{apt.reason}</td>
                       <td>{apt.room}</td>
                       <td>
-                        <span style={{
-                          padding: '4px 10px',
-                          borderRadius: '12px',
-                          fontSize: '12px',
-                          fontWeight: 'bold',
-                          backgroundColor: 
-                            apt.status === 'Completed' ? '#d4edda' :
-                            apt.status === 'Pending' ? '#fff3cd' :
-                            apt.status === 'Confirmed' ? '#cfe2ff' :
-                            apt.status === 'In Progress' ? '#cff4fc' :
-                            '#f8d7da',
-                          color: '#000'
-                        }}>
+                        <span className={getStatusClass(apt.status)}>
                           {apt.status}
                         </span>
                       </td>
                       <td>
                         {apt.status === 'Pending' || apt.status === 'Confirmed' ? (
-                          <button 
+                          <button
                             className="table-btn"
                             onClick={() => handleStartAppointment(apt.id)}
                           >
                             Start
                           </button>
                         ) : apt.status === 'In Progress' ? (
-                          <button 
+                          <button
                             className="table-btn"
                             onClick={() => handleCompleteAppointment(apt.id)}
                           >
                             Complete
                           </button>
-                        ) : apt.status === 'Cancelled' ? (
-                          <button className="table-btn">Reschedule</button>
                         ) : (
-                          <button className="table-btn">View</button>
+                          <button
+                            className="table-btn"
+                            onClick={() => handleViewPatient(apt.patientId)}
+                          >
+                            View
+                          </button>
                         )}
                       </td>
                     </tr>
@@ -203,17 +258,73 @@ const DoctorSchedule = () => {
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="action-row">
           <h3>Quick Actions</h3>
-          <button 
-            className="action-btn"
-            onClick={fetchAppointments}
-          >
+          <button className="action-btn" onClick={fetchAppointments}>
             🔄 Refresh
           </button>
-          <button className="action-btn">🆕 Add Appointment</button>
+          <button className="action-btn" onClick={() => setShowAddForm(!showAddForm)}>
+            {showAddForm ? '❌ Cancel' : '🆕 Add Appointment'}
+          </button>
         </div>
+
+        {showAddForm && (
+          <div className="appointment-form-container">
+            <h3>Add New Appointment</h3>
+            <form onSubmit={handleAddAppointment}>
+              <div className="form-field">
+                <label>Patient *</label>
+                <select
+                  value={formData.patientId}
+                  onChange={(e) => setFormData({ ...formData, patientId: e.target.value })}
+                  required
+                >
+                  <option value="">Select Patient</option>
+                  {patients.map(patient => (
+                    <option key={patient.id} value={patient.id}>
+                      {patient.firstName} {patient.lastName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-field">
+                <label>Time *</label>
+                <input
+                  type="time"
+                  value={formData.time}
+                  onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-field">
+                <label>Reason for Visit *</label>
+                <input
+                  type="text"
+                  value={formData.reason}
+                  onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                  required
+                  placeholder="e.g., Cleaning, Filling, Consultation"
+                />
+              </div>
+
+              <div className="form-field">
+                <label>Room</label>
+                <input
+                  type="text"
+                  value={formData.room}
+                  onChange={(e) => setFormData({ ...formData, room: e.target.value })}
+                  placeholder="e.g., Room 1"
+                />
+              </div>
+
+              <button type="submit" className="submit-btn">
+                Add Appointment
+              </button>
+            </form>
+          </div>
+        )}
       </div>
     </div>
   );

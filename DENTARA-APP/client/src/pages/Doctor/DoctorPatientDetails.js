@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { doc, getDoc, collection, query, where, getDocs, addDoc } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs, addDoc, orderBy } from "firebase/firestore";
 import { db } from "../../firebase/firebaseConfig";
+import { getTodayLocal } from '../../utils/dateUtils';
 import { useAuth } from "../../contexts/AuthContext";
 import { FiArrowLeft } from "react-icons/fi";
 import "../../styles/DoctorPatients.css";
@@ -10,16 +11,32 @@ const DoctorPatientDetails = () => {
   const { patientId } = useParams();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  
+
   const [patient, setPatient] = useState(null);
   const [treatments, setTreatments] = useState([]);
+  const [clinicalNotes, setClinicalNotes] = useState([]);
   const [newNote, setNewNote] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [doctorName, setDoctorName] = useState('');
+  const today = getTodayLocal();
 
   useEffect(() => {
     fetchPatientData();
+    fetchDoctorName();
   }, [patientId]);
+
+  const fetchDoctorName = async () => {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        setDoctorName(`Dr. ${userData.firstName} ${userData.lastName}`);
+      }
+    } catch (error) {
+      console.error('Error fetching doctor name:', error);
+    }
+  };
 
   const fetchPatientData = async () => {
     try {
@@ -31,17 +48,28 @@ const DoctorPatientDetails = () => {
         setPatient({ id: patientDoc.id, ...patientDoc.data() });
       }
 
-      // Fetch treatment history for this patient
+      // Fetch ALL treatments/notes for this patient
       const treatmentsQuery = query(
         collection(db, 'treatments'),
         where('patientId', '==', patientId)
       );
       const treatmentsSnapshot = await getDocs(treatmentsQuery);
-      const treatmentsData = treatmentsSnapshot.docs.map(doc => ({
+      const allTreatments = treatmentsSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
+
+      // Separate clinical notes from regular treatments in JavaScript
+      const clinicalNotesData = allTreatments
+        .filter(item => item.treatment === 'Clinical Note')
+        .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date, newest first
+
+      const treatmentsData = allTreatments
+        .filter(item => item.treatment !== 'Clinical Note')
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+
       setTreatments(treatmentsData);
+      setClinicalNotes(clinicalNotesData);
 
       setLoading(false);
     } catch (error) {
@@ -49,6 +77,7 @@ const DoctorPatientDetails = () => {
       setLoading(false);
     }
   };
+
 
   const handleSaveNote = async () => {
     if (!newNote.trim()) {
@@ -59,12 +88,12 @@ const DoctorPatientDetails = () => {
     try {
       setSaving(true);
 
-      // Add new treatment/note to Firestore
+      // Add new clinical note to Firestore
       await addDoc(collection(db, 'treatments'), {
         patientId: patientId,
         patientName: `${patient.firstName} ${patient.lastName}`,
-        date: new Date().toISOString().split('T')[0],
-        doctor: `Dr. ${currentUser.email.split('@')[0]}`,
+        date: getTodayLocal(),
+        doctor: doctorName || `Dr. ${currentUser.email.split('@')[0]}`,
         treatment: 'Clinical Note',
         notes: newNote,
         status: 'Completed',
@@ -73,13 +102,18 @@ const DoctorPatientDetails = () => {
 
       alert('Note saved successfully!');
       setNewNote('');
-      fetchPatientData(); // Refresh data
+      fetchPatientData(); // Refresh data to show new note
       setSaving(false);
     } catch (error) {
       console.error('Error saving note:', error);
       alert('Failed to save note');
       setSaving(false);
     }
+  };
+
+  const handleScheduleNextVisit = () => {
+    // Navigate to schedule page
+    navigate('/doctor-dashboard/schedule');
   };
 
   if (loading) {
@@ -142,15 +176,15 @@ const DoctorPatientDetails = () => {
 
           <section className="patient-card">
             <h3>Add Clinical Note</h3>
-            <textarea 
-              placeholder="Add your clinical notes..." 
-              rows="4" 
+            <textarea
+              placeholder="Add your clinical notes..."
+              rows="4"
               className="notes-area"
               value={newNote}
               onChange={(e) => setNewNote(e.target.value)}
               disabled={saving}
             ></textarea>
-            <button 
+            <button
               className="save-btn"
               onClick={handleSaveNote}
               disabled={saving}
@@ -158,19 +192,44 @@ const DoctorPatientDetails = () => {
               {saving ? 'Saving...' : 'Save Note'}
             </button>
           </section>
+
+          {/* Display All Clinical Notes */}
+          <section className="patient-card">
+            <h3>Clinical Notes History</h3>
+            {clinicalNotes.length === 0 ? (
+              <p>No clinical notes yet</p>
+            ) : (
+              <div className="notes-history">
+                {clinicalNotes.map(note => (
+                  <div key={note.id} className="note-item">
+                    <div className="note-header">
+                      <strong>{note.date}</strong> - {note.doctor}
+                    </div>
+                    <div className="note-content">
+                      {note.notes}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
         </div>
 
         {/* Right section */}
         <aside className="quick-actions-box">
           <h3>Quick Actions</h3>
           <ul>
-            <li><button className="quick-btn">📅 Schedule Next Visit</button></li>
-            <li><button className="quick-btn">🔔 Send Reminder</button></li>
-            <li><button className="quick-btn">💬 Message</button></li>
-            <li><button className="quick-btn">📁 Upload Document</button></li>
+            <li>
+              <button
+                className="quick-btn"
+                onClick={handleScheduleNextVisit}
+              >
+                📅 Schedule Next Visit
+              </button>
+            </li>
           </ul>
-          <button 
-            className="back-btn" 
+          <button
+            className="back-btn"
             onClick={() => navigate("/doctor-dashboard/patients")}
           >
             <FiArrowLeft className="back-icon" />
