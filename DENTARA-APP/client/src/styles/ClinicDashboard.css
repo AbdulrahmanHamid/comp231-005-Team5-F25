@@ -231,3 +231,141 @@
 .signout-btn:hover {
   color: #000;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/***************************************/
+.clinic-page {
+  background: #fafcf5;
+  padding: 25px;
+  border-radius: 12px;
+}
+
+.clinic-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.clinic-table th,
+.clinic-table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: left;
+}
+
+.clinic-table th {
+  background-color: #e8ffb7;
+  color: #3c0094;
+  font-weight: 700;
+}
+
+.task-input {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.task-input input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.task-input button {
+  padding: 8px 12px;
+  border: none;
+  background-color: #7e5cfb;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.export-btn {
+  margin-top: 15px;
+  background-color: #7e5cfb;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+
+.tasklist-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  background-color: #f5f6f8;
+}
+
+/* Top row with task summary + filters side by side */
+.tasklist-top {
+  display: flex;
+  gap: 20px;
+}
+
+.task-summary,
+.quick-filters {
+  background-color: #a6ce39;
+  border-radius: 10px;
+  padding: 20px;
+  flex: 1;
+}
+
+.quick-filters {
+  max-width: 300px;
+}
+
+.task-summary h3,
+.quick-filters h3,
+.task-list-section h3,
+.notes-section h3 {
+  text-align: center;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+/* Task List block */
+.task-list-section,
+.notes-section {
+  background-color: #a6ce39;
+  border-radius: 10px;
+  padding: 20px;
+}
+
+/* Buttons */
+.add-task-btn,
+.filter-btn,
+.save-note-btn {
+  background: white;
+  color: black;
+  font-weight: 500;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+.add-task-btn:hover,
+.filter-btn:hover,
+.save-note-btn:hover {
+  background: #fff8e1;
+}

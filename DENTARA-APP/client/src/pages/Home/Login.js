@@ -29,7 +29,7 @@ const Login = () => {
       if (result.success) {
         // Navigate based on role
         if (result.role === 'staff') {
-          navigate('/staff-dashboard');
+          navigate('/clinic-dashboard');
         } else if (result.role === 'doctor') {
           navigate('/doctor-dashboard');
         } else if (result.role === 'manager') {

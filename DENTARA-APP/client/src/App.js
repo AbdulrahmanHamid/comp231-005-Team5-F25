@@ -10,6 +10,15 @@ import DoctorHome from './pages/Doctor/DoctorHome';
 import DoctorSchedule from './pages/Doctor/DoctorSchedule';
 import DoctorPatients from './pages/Doctor/DoctorPatients';
 import ClinicDashboard from './pages/Clinic/ClinicDashboard';
+import KPIsView from "./pages/Clinic/KPIsView";
+import Appointments from "./pages/Clinic/Appointments";
+import Tasks from "./pages/Clinic/Tasks";
+import TaskList from "./pages/Clinic/TaskList";
+import AppointmentCentre from "./pages/Clinic/AppointmentCentre";
+import NoShowList from "./pages/Clinic/NoShowList";
+import ClinicHome from "./pages/Clinic/ClinicHome";
+
+
 
 
 // Protected Route Component
@@ -89,15 +98,30 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
 
-          {/* Staff Dashboard */}
+          {/* 🏥 Clinic Dashboard (Nested Routes) */}
           <Route
-            path="/staff-dashboard"
+            path="/clinic-dashboard"
             element={
               <ProtectedRoute allowedRoles={['staff']}>
                 <ClinicDashboard />
               </ProtectedRoute>
             }
-          />
+          >
+            {/* Default route → show the main dashboard content */}
+            <Route index element={<ClinicHome />} />
+            <Route path="home" element={<ClinicHome />} />
+            <Route path="kpis" element={<KPIsView />} />
+
+
+            {/* Other pages (no top buttons on these) */}
+            <Route path="appointments" element={<Appointments />} />
+            <Route path="tasks" element={<Tasks />} />
+            <Route path="task-list" element={<TaskList />} />
+            <Route path="appointment-centre" element={<AppointmentCentre />} />
+            <Route path="no-shows" element={<NoShowList />} />
+          </Route>
+
+
 
           {/* Doctor Dashboard (Nested Routes) */}
           <Route
