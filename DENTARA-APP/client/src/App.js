@@ -1,24 +1,29 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+
 import Home from './pages/Home/Home';
 import Login from './pages/Home/Login';
 import Signup from './pages/Home/Signup';
+
 import UserProfile from './pages/Home/UserProfile';
+
 import DoctorDashboard from './pages/Doctor/DoctorDashboard';
 import DoctorHome from './pages/Doctor/DoctorHome';
 import DoctorSchedule from './pages/Doctor/DoctorSchedule';
 import DoctorPatients from './pages/Doctor/DoctorPatients';
+
 import ClinicDashboard from './pages/Clinic/ClinicDashboard';
-import KPIsView from "./pages/Clinic/KPIsView";
-import Appointments from "./pages/Clinic/Appointments";
-import Tasks from "./pages/Clinic/Tasks";
-import TaskList from "./pages/Clinic/TaskList";
-import AppointmentCentre from "./pages/Clinic/AppointmentCentre";
+import ClinicHome from './pages/Clinic/ClinicHome';
+import KPIsView from "./pages/Clinic/KPIsView";           
 import NoShowList from "./pages/Clinic/NoShowList";
-import ClinicHome from "./pages/Clinic/ClinicHome";
 
-
+import AppointmentsPage from "./pages/Clinic/Appointments/AppointmentsPage";   
+import ManageAppointments from "./pages/Clinic/Appointments/ManageAppointments";           
+import CheckinCancellations from "./pages/Clinic/Appointments/CheckinCancellations";
+import TasksPage from "./pages/Clinic/Tasks/TasksPage"; 
+import TaskSummary from "./pages/Clinic/Tasks/TaskSummary";           
+import TaskList from "./pages/Clinic/Tasks/TaskList";   
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -80,21 +85,28 @@ function App() {
               </ProtectedRoute>
             }
           >
-            {/* Default route → show the main dashboard content */}
+            {/* Default → Clinic Home */}
             <Route index element={<ClinicHome />} />
             <Route path="home" element={<ClinicHome />} />
-            <Route path="kpis" element={<KPIsView />} />
+
+            {/* Combined Pages */}
+            <Route path="appointments" element={<AppointmentsPage />}>
+              <Route index element={<ManageAppointments />} />
+              <Route path="manage" element={<ManageAppointments />} />
+              <Route path="checkin" element={<CheckinCancellations />} />
+            </Route>
+
+            <Route path="tasks" element={<TasksPage />}>
+              <Route index element={<TaskSummary />} />
+              <Route path="summary" element={<TaskSummary />} />
+              <Route path="list" element={<TaskList />} />
+            </Route>
 
 
-            {/* Other pages (no top buttons on these) */}
-            <Route path="appointments" element={<Appointments />} />
-            <Route path="tasks" element={<Tasks />} />
-            <Route path="task-list" element={<TaskList />} />
-            <Route path="appointment-centre" element={<AppointmentCentre />} />
+            {/* Additional Pages */}
             <Route path="no-shows" element={<NoShowList />} />
+            <Route path="kpis" element={<KPIsView />} />
           </Route>
-
-
 
           {/* Doctor Dashboard (Nested Routes) */}
           <Route

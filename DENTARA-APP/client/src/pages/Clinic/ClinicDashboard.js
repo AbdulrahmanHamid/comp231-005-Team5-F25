@@ -15,24 +15,24 @@ import "../../styles/ClinicDashboard.css";
 
 const ClinicDashboard = () => {
   const { logout } = useAuth();
-  const navigate = useNavigate(); // 👈 add this line
-
+  const navigate = useNavigate();
 
   return (
     <div className="clinic-layout">
       {/* Header */}
       <header className="clinic-header">
         <h1>CLINIC DASHBOARD</h1>
+
         <div className="clinic-header-buttons">
           <button className="kpi-btn" onClick={() => navigate("kpis")}>
             KPI Tiles
           </button>
+
           <button className="wrapup-btn active" onClick={() => navigate("home")}>
             Daily Wrap-Up
-          </button> 
+          </button>
         </div>
       </header>
-
 
       <div className="clinic-body">
         {/* Sidebar */}
@@ -44,26 +44,22 @@ const ClinicDashboard = () => {
                   <FiHome /> Home
                 </NavLink>
               </li>
+
+              {/* NEW COMBINED APPOINTMENTS PAGE */}
               <li>
                 <NavLink to="appointments">
                   <FiCalendar /> Appointments
                 </NavLink>
               </li>
+
+              {/* NEW COMBINED TASKS PAGE */}
               <li>
                 <NavLink to="tasks">
                   <FiClipboard /> Tasks
                 </NavLink>
               </li>
-              <li>
-                <NavLink to="task-list">
-                  <FiList /> Task List
-                </NavLink>
-              </li>
-              <li>
-                <NavLink to="appointment-centre">
-                  <FiCalendar /> Appointment Centre
-                </NavLink>
-              </li>
+
+              {/* KEEP IF YOU STILL HAVE NO-SHOWS PAGE */}
               <li>
                 <NavLink to="no-shows">
                   <FiList /> No-shows
@@ -80,9 +76,8 @@ const ClinicDashboard = () => {
           </div>
         </aside>
 
-        {/* Main Content Area */}
+        {/* Main Content */}
         <main className="clinic-main">
-          {/* Nested routes will render here */}
           <Outlet />
         </main>
       </div>
