@@ -10,6 +10,14 @@ import DoctorHome from './pages/Doctor/DoctorHome';
 import DoctorSchedule from './pages/Doctor/DoctorSchedule';
 import DoctorPatients from './pages/Doctor/DoctorPatients';
 import ClinicDashboard from './pages/Clinic/ClinicDashboard';
+import KPIsView from "./pages/Clinic/KPIsView";
+import Appointments from "./pages/Clinic/Appointments";
+import Tasks from "./pages/Clinic/Tasks";
+import TaskList from "./pages/Clinic/TaskList";
+import AppointmentCentre from "./pages/Clinic/AppointmentCentre";
+import NoShowList from "./pages/Clinic/NoShowList";
+import ClinicHome from "./pages/Clinic/ClinicHome";
+
 
 
 // Protected Route Component
