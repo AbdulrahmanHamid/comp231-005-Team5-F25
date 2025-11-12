@@ -27,32 +27,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   return children;
 };
 
-// Temporary Dashboard Components
-const StaffDashboard = () => {
-  const { logout } = useAuth();
-  return (
-    <div style={{ padding: '40px', textAlign: 'center' }}>
-      <h1>Staff Dashboard</h1>
-      <p>Welcome! This is your Staff Dashboard.</p>
-      <button 
-        onClick={logout}
-        style={{
-          padding: '12px 30px',
-          fontSize: '16px',
-          backgroundColor: '#7c5cce',
-          color: 'white',
-          border: 'none',
-          borderRadius: '25px',
-          cursor: 'pointer',
-          marginTop: '20px'
-        }}
-      >
-        Logout
-      </button>
-    </div>
-  );
-};
-
+// Temporary Manager Dashboard
 const ManagerDashboard = () => {
   const { logout } = useAuth();
   return (
@@ -98,9 +73,9 @@ function App() {
             } 
           />
 
-          {/* Staff Dashboard */}
+          {/* Staff/Clinic Dashboard (Nested Routes) */}
           <Route
-            path="/staff-dashboard"
+            path="/staff-dashboard/*"
             element={
               <ProtectedRoute allowedRoles={['staff']}>
                 <ClinicDashboard />
