@@ -4,21 +4,12 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Home from './pages/Home/Home';
 import Login from './pages/Home/Login';
 import Signup from './pages/Home/Signup';
-import './App.css';
+import UserProfile from './pages/Home/UserProfile';
 import DoctorDashboard from './pages/Doctor/DoctorDashboard';
 import DoctorHome from './pages/Doctor/DoctorHome';
 import DoctorSchedule from './pages/Doctor/DoctorSchedule';
 import DoctorPatients from './pages/Doctor/DoctorPatients';
 import ClinicDashboard from './pages/Clinic/ClinicDashboard';
-import KPIsView from "./pages/Clinic/KPIsView";
-import Appointments from "./pages/Clinic/Appointments";
-import Tasks from "./pages/Clinic/Tasks";
-import TaskList from "./pages/Clinic/TaskList";
-import AppointmentCentre from "./pages/Clinic/AppointmentCentre";
-import NoShowList from "./pages/Clinic/NoShowList";
-import ClinicHome from "./pages/Clinic/ClinicHome";
-
-
 
 
 // Protected Route Component
@@ -36,33 +27,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   return children;
 };
 
-// Temporary Dashboard Components (we'll build these properly next)
-const StaffDashboard = () => {
-  const { logout } = useAuth();
-  return (
-    <div style={{ padding: '40px', textAlign: 'center' }}>
-      <h1>Staff Dashboard</h1>
-      <p>Welcome! This is your Staff Dashboard.</p>
-      <button 
-        onClick={logout}
-        style={{
-          padding: '12px 30px',
-          fontSize: '16px',
-          backgroundColor: '#7c5cce',
-          color: 'white',
-          border: 'none',
-          borderRadius: '25px',
-          cursor: 'pointer',
-          marginTop: '20px'
-        }}
-      >
-        Logout
-      </button>
-    </div>
-  );
-};
-
-
+// Temporary Manager Dashboard
 const ManagerDashboard = () => {
   const { logout } = useAuth();
   return (
@@ -98,9 +63,9 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
 
-          {/* 🏥 Clinic Dashboard (Nested Routes) */}
+          {/* Staff Dashboard */}
           <Route
-            path="/clinic-dashboard"
+            path="/staff-dashboard"
             element={
               <ProtectedRoute allowedRoles={['staff']}>
                 <ClinicDashboard />
@@ -132,10 +97,10 @@ function App() {
               </ProtectedRoute>
             }
           >
-           {/* Default route → Home */}
+            {/* Default route → Home */}
             <Route index element={<Navigate to="home" />} />
             <Route path="home" element={<DoctorHome />} />
-            {<Route path="schedule" element={<DoctorSchedule />} /> }
+            <Route path="schedule" element={<DoctorSchedule />} />
             <Route path="patients/*" element={<DoctorPatients />} />
           </Route>
 

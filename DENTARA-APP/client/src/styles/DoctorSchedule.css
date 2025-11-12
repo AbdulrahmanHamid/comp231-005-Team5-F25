@@ -43,7 +43,8 @@
   color: white;
   border: none;
   border-radius: 5px;
-  padding: 6px 12px;
+  padding: 8px 15px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -67,10 +68,20 @@
   padding: 15px;
 }
 
+.summary-box h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
 .summary-box ul {
   list-style-type: disc;
   padding-left: 20px;
   font-size: 0.95rem;
+}
+
+.summary-box li {
+  margin-bottom: 5px;
 }
 
 /* Appointment list */
@@ -81,10 +92,17 @@
   padding: 15px;
 }
 
+.appointments-box h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
 .appointments-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 10px;
+  background-color: white;
 }
 
 .appointments-table th,
@@ -95,17 +113,54 @@
   font-size: 0.9rem;
 }
 
+.appointments-table th {
+  background-color: #f0f0f0;
+  font-weight: 700;
+}
+
 .table-btn {
   background-color: #fff;
   border: 1px solid #78d494;
   border-radius: 15px;
-  padding: 5px 10px;
+  padding: 5px 15px;
   cursor: pointer;
   font-weight: 600;
+  font-size: 0.85rem;
+  transition: background-color 0.3s;
 }
 
 .table-btn:hover {
   background-color: #d8f4dc;
+}
+
+/* Status badges */
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #000;
+  display: inline-block;
+}
+
+.status-completed {
+  background-color: #d4edda;
+}
+
+.status-pending {
+  background-color: #fff3cd;
+}
+
+.status-confirmed {
+  background-color: #cfe2ff;
+}
+
+.status-in-progress {
+  background-color: #cff4fc;
+}
+
+.status-cancelled {
+  background-color: #f8d7da;
 }
 
 /* Action button row */
@@ -113,6 +168,13 @@
   background-color: #f8fbe7;
   border-radius: 10px;
   padding: 15px;
+  margin-bottom: 20px;
+}
+
+.action-row h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.1rem;
+  font-weight: 700;
 }
 
 .action-btn {
@@ -123,8 +185,67 @@
   font-weight: 600;
   cursor: pointer;
   margin-right: 10px;
+  font-size: 0.9rem;
+  transition: background-color 0.3s;
 }
 
 .action-btn:hover {
   background-color: #e4f5d2;
+}
+
+/* Add Appointment Form */
+.appointment-form-container {
+  background-color: #f8fbe7;
+  padding: 20px;
+  border-radius: 10px;
+  margin-top: 20px;
+}
+
+.appointment-form-container h3 {
+  margin: 0 0 15px 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.form-field {
+  margin-bottom: 15px;
+}
+
+.form-field label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  font-size: 0.95rem;
+}
+
+.form-field input,
+.form-field select {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+.form-field input:focus,
+.form-field select:focus {
+  outline: none;
+  border-color: #78d494;
+}
+
+.submit-btn {
+  padding: 12px 30px;
+  font-size: 16px;
+  font-weight: bold;
+  background-color: #78d494;
+  color: #000;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.submit-btn:hover {
+  background-color: #65c080;
 }

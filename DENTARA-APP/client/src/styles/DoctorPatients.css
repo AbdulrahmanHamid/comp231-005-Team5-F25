@@ -1,3 +1,9 @@
+/* ===========================
+   DOCTOR PATIENTS PAGE
+=========================== */
+.doctor-patient-list {
+  padding: 10px;
+}
 
 .doctor-patient-page {
   padding: 10px;
@@ -11,6 +17,111 @@
   padding: 12px 20px;
   border-radius: 4px;
   margin-bottom: 20px;
+}
+
+/* Search and Action Bar */
+.search-action-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.search-input {
+  padding: 10px 15px;
+  flex: 1;
+  max-width: 400px;
+  font-size: 16px;
+  border: 2px solid #78d494;
+  border-radius: 8px;
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: #5bbf84;
+}
+
+.add-patient-btn {
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  background-color: #78d494;
+  color: #000;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.add-patient-btn:hover {
+  background-color: #65c080;
+}
+
+/* Add Patient Form */
+.patient-form-container {
+  background-color: #f8fbe7;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.patient-form-container h3 {
+  margin: 0 0 15px 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.form-field {
+  margin-bottom: 0;
+}
+
+.form-field label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  font-size: 0.95rem;
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  outline: none;
+  border-color: #78d494;
+}
+
+.submit-btn {
+  padding: 12px 30px;
+  font-size: 16px;
+  font-weight: bold;
+  background-color: #78d494;
+  color: #000;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  margin-top: 15px;
+  transition: background-color 0.3s;
+}
+
+.submit-btn:hover {
+  background-color: #65c080;
 }
 
 /* Layout structure */
@@ -35,11 +146,13 @@
 
 .patient-card h3 {
   font-weight: 700;
-  margin-bottom: 10px;
+  margin: 0 0 10px 0;
+  font-size: 1.1rem;
 }
 
 .patient-info-content p {
-  margin: 4px 0;
+  margin: 6px 0;
+  font-size: 0.95rem;
 }
 
 /* Table styling */
@@ -49,14 +162,20 @@
   background-color: white;
   border-radius: 6px;
   overflow: hidden;
+  margin-top: 10px;
 }
 
 .history-table th,
 .history-table td {
-  padding: 8px 10px;
+  padding: 10px;
   border: 1px solid #ccc;
   text-align: center;
   font-size: 0.9rem;
+}
+
+.history-table th {
+  background-color: #f0f0f0;
+  font-weight: 700;
 }
 
 /* Notes section */
@@ -68,19 +187,26 @@
   font-family: inherit;
   resize: vertical;
   margin-bottom: 10px;
+  box-sizing: border-box;
 }
 
 .save-btn {
   background-color: #fff;
-  border: none;
+  border: 1px solid #78d494;
   border-radius: 20px;
   padding: 8px 18px;
   font-weight: 600;
   cursor: pointer;
+  transition: background-color 0.3s;
 }
 
 .save-btn:hover {
   background-color: #e4f5d2;
+}
+
+.save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Right section (Quick Actions) */
@@ -93,13 +219,15 @@
 }
 
 .quick-actions-box h3 {
-  margin-bottom: 12px;
+  margin: 0 0 12px 0;
   font-weight: 700;
+  font-size: 1.1rem;
 }
 
 .quick-actions-box ul {
   list-style: none;
   padding: 0;
+  margin: 0;
 }
 
 .quick-btn {
@@ -109,29 +237,35 @@
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
-  margin: 6px 0;
+  margin: 8px 0;
+  padding: 5px 0;
+  transition: color 0.3s;
 }
 
 .quick-btn:hover {
   color: #145e2f;
   text-decoration: underline;
 }
+
 .back-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   background: rgb(73, 172, 147);
   border: none;
-  color:black;
-  font-size: 1.5rem;
+  color: black;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: color 0.3s;
-  margin-bottom: 10px;
+  transition: all 0.3s;
+  margin-top: 15px;
+  padding: 10px 15px;
+  border-radius: 8px;
 }
 
 .back-btn:hover {
-  color: #136e3f;
+  color: white;
+  background: rgb(60, 150, 130);
 }
 
 .back-icon {
@@ -142,5 +276,44 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 15px;
 }
 
+.table-btn {
+  background-color: #fff;
+  border: 1px solid #78d494;
+  border-radius: 15px;
+  padding: 5px 15px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: background-color 0.3s;
+}
+
+.table-btn:hover {
+  background-color: #d8f4dc;
+}
+/* Clinical Notes History */
+.notes-history {
+  margin-top: 10px;
+}
+
+.note-item {
+  background-color: white;
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.note-header {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.note-content {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #333;
+}

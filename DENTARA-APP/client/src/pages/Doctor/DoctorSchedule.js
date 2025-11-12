@@ -1,89 +1,330 @@
-import React from "react";
-import "../../styles/DoctorSchedule.css";
+import React, { useState, useEffect } from "react";
+import { collection, query, where, getDocs, addDoc, updateDoc, doc, getDoc } from "firebase/firestore";
+import { db } from "../../firebase/firebaseConfig";
+import { getTodayLocal } from "../../utils/dateUtils";
 import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import "../../styles/DoctorSchedule.css";
+
 
 const DoctorSchedule = () => {
   const { currentUser } = useAuth();
-  const today = new Date().toISOString().split("T")[0];
+  const navigate = useNavigate();
+  const [appointments, setAppointments] = useState([]);
+  const [patients, setPatients] = useState([]);
+  const [doctorName, setDoctorName] = useState('');
+  const [selectedDate, setSelectedDate] = useState(getTodayLocal());
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    completed: 0,
+    cancelled: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  const [formData, setFormData] = useState({
+    patientId: '',
+    time: '',
+    reason: '',
+    room: ''
+  });
+
+  useEffect(() => {
+    fetchAppointments();
+    fetchPatients();
+    fetchDoctorName();
+  }, [selectedDate, currentUser]);
+
+  const fetchDoctorName = async () => {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        setDoctorName(`Dr. ${userData.firstName} ${userData.lastName}`);
+      }
+    } catch (error) {
+      console.error('Error fetching doctor name:', error);
+      setDoctorName('Dr. User');
+    }
+  };
+
+  const fetchPatients = async () => {
+    try {
+      const patientsSnapshot = await getDocs(collection(db, 'patients'));
+      const patientsData = patientsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setPatients(patientsData);
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+    }
+  };
+
+  const fetchAppointments = async () => {
+    try {
+      setLoading(true);
+
+      const appointmentsQuery = query(
+        collection(db, 'appointments'),
+        where('doctorId', '==', currentUser.uid),
+        where('date', '==', selectedDate)
+      );
+
+      const appointmentsSnapshot = await getDocs(appointmentsQuery);
+      const appointmentsData = appointmentsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      appointmentsData.sort((a, b) => {
+        const timeA = new Date(`1970-01-01 ${a.time}`);
+        const timeB = new Date(`1970-01-01 ${b.time}`);
+        return timeA - timeB;
+      });
+
+      setAppointments(appointmentsData);
+
+      const total = appointmentsData.length;
+      const pending = appointmentsData.filter(a => a.status === 'Pending' || a.status === 'Confirmed').length;
+      const completed = appointmentsData.filter(a => a.status === 'Completed').length;
+      const cancelled = appointmentsData.filter(a => a.status === 'Cancelled' || a.status === 'No-Show').length;
+
+      setStats({ total, pending, completed, cancelled });
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+      setLoading(false);
+    }
+  };
+
+  const handleAddAppointment = async (e) => {
+    e.preventDefault();
+
+    if (!formData.patientId || !formData.time || !formData.reason) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const selectedPatient = patients.find(p => p.id === formData.patientId);
+
+      await addDoc(collection(db, 'appointments'), {
+        patientId: formData.patientId,
+        patientName: `${selectedPatient.firstName} ${selectedPatient.lastName}`,
+        doctorId: currentUser.uid,
+        date: selectedDate,
+        time: formData.time,
+        reason: formData.reason,
+        room: formData.room || 'TBD',
+        status: 'Confirmed',
+        createdAt: new Date().toISOString()
+      });
+
+      alert('Appointment added successfully!');
+      setShowAddForm(false);
+      setFormData({ patientId: '', time: '', reason: '', room: '' });
+      fetchAppointments();
+    } catch (error) {
+      console.error('Error adding appointment:', error);
+      alert('Failed to add appointment');
+    }
+  };
+
+  const handleStartAppointment = async (appointmentId) => {
+    try {
+      const appointmentRef = doc(db, 'appointments', appointmentId);
+      await updateDoc(appointmentRef, { status: 'In Progress' });
+      fetchAppointments();
+    } catch (error) {
+      console.error('Error updating appointment:', error);
+    }
+  };
+
+  const handleCompleteAppointment = async (appointmentId) => {
+    try {
+      const appointmentRef = doc(db, 'appointments', appointmentId);
+      await updateDoc(appointmentRef, { status: 'Completed' });
+      fetchAppointments();
+    } catch (error) {
+      console.error('Error completing appointment:', error);
+    }
+  };
+
+  const handleViewPatient = (patientId) => {
+    navigate(`/doctor-dashboard/patients/${patientId}`);
+  };
+
+  const getStatusClass = (status) => {
+    switch (status) {
+      case 'Completed': return 'status-badge status-completed';
+      case 'Pending': return 'status-badge status-pending';
+      case 'Confirmed': return 'status-badge status-confirmed';
+      case 'In Progress': return 'status-badge status-in-progress';
+      default: return 'status-badge status-cancelled';
+    }
+  };
 
   return (
     <div className="doctor-schedule-page">
-      {/* Header */}
       <div className="schedule-header">
         <h2>Today's Schedule</h2>
         <span className="doctor-name">
-          {currentUser ? `Dr. ${currentUser.email}` : "Dr. [Name]"}
+          {doctorName || "Loading..."}
         </span>
       </div>
 
-      {/* Filter & Content */}
       <div className="schedule-container">
-        {/* Date selector */}
         <div className="date-row">
-          <button className="date-btn">
-            {today} ▼
-          </button>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="date-btn"
+          />
         </div>
 
-        {/* Schedule panels */}
         <div className="schedule-panels">
-          {/* Summary Column */}
           <div className="summary-box">
-            <h3>Summary Row</h3>
+            <h3>Summary</h3>
             <ul>
-              <li>Total Appointments: 8</li>
-              <li>Pending: 3</li>
-              <li>Completed: 4</li>
-              <li>Cancelled / No-Shows: 1</li>
+              <li><strong>Total Appointments:</strong> {stats.total}</li>
+              <li><strong>Pending:</strong> {stats.pending}</li>
+              <li><strong>Completed:</strong> {stats.completed}</li>
+              <li><strong>Cancelled / No-Shows:</strong> {stats.cancelled}</li>
             </ul>
           </div>
 
-          {/* Appointment List */}
           <div className="appointments-box">
             <h3>Appointments List</h3>
-            <table className="appointments-table">
-              <thead>
-                <tr>
-                  <th>Time</th>
-                  <th>Patient</th>
-                  <th>Reason</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>09:00 AM</td>
-                  <td>John Doe</td>
-                  <td>Cleaning</td>
-                  <td>Completed</td>
-                  <td><button className="table-btn">View</button></td>
-                </tr>
-                <tr>
-                  <td>10:30 AM</td>
-                  <td>Jane Smith</td>
-                  <td>Filling</td>
-                  <td>Pending</td>
-                  <td><button className="table-btn">Start</button></td>
-                </tr>
-                <tr>
-                  <td>12:00 PM</td>
-                  <td>Tom Wilson</td>
-                  <td>Consultation</td>
-                  <td>Cancelled</td>
-                  <td><button className="table-btn">Reschedule</button></td>
-                </tr>
-              </tbody>
-            </table>
+            {loading ? (
+              <p>Loading appointments...</p>
+            ) : appointments.length === 0 ? (
+              <p>No appointments for this date</p>
+            ) : (
+              <table className="appointments-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Patient</th>
+                    <th>Reason</th>
+                    <th>Room</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {appointments.map(apt => (
+                    <tr key={apt.id}>
+                      <td>{apt.time}</td>
+                      <td>{apt.patientName}</td>
+                      <td>{apt.reason}</td>
+                      <td>{apt.room}</td>
+                      <td>
+                        <span className={getStatusClass(apt.status)}>
+                          {apt.status}
+                        </span>
+                      </td>
+                      <td>
+                        {apt.status === 'Pending' || apt.status === 'Confirmed' ? (
+                          <button
+                            className="table-btn"
+                            onClick={() => handleStartAppointment(apt.id)}
+                          >
+                            Start
+                          </button>
+                        ) : apt.status === 'In Progress' ? (
+                          <button
+                            className="table-btn"
+                            onClick={() => handleCompleteAppointment(apt.id)}
+                          >
+                            Complete
+                          </button>
+                        ) : (
+                          <button
+                            className="table-btn"
+                            onClick={() => handleViewPatient(apt.patientId)}
+                          >
+                            View
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="action-row">
-          <h3>Action Button</h3>
-          <button className="action-btn">🆕 Add Appointment</button>
-          <button className="action-btn">🔄 Refresh</button>
+          <h3>Quick Actions</h3>
+          <button className="action-btn" onClick={fetchAppointments}>
+            🔄 Refresh
+          </button>
+          <button className="action-btn" onClick={() => setShowAddForm(!showAddForm)}>
+            {showAddForm ? '❌ Cancel' : '🆕 Add Appointment'}
+          </button>
         </div>
+
+        {showAddForm && (
+          <div className="appointment-form-container">
+            <h3>Add New Appointment</h3>
+            <form onSubmit={handleAddAppointment}>
+              <div className="form-field">
+                <label>Patient *</label>
+                <select
+                  value={formData.patientId}
+                  onChange={(e) => setFormData({ ...formData, patientId: e.target.value })}
+                  required
+                >
+                  <option value="">Select Patient</option>
+                  {patients.map(patient => (
+                    <option key={patient.id} value={patient.id}>
+                      {patient.firstName} {patient.lastName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-field">
+                <label>Time *</label>
+                <input
+                  type="time"
+                  value={formData.time}
+                  onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-field">
+                <label>Reason for Visit *</label>
+                <input
+                  type="text"
+                  value={formData.reason}
+                  onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                  required
+                  placeholder="e.g., Cleaning, Filling, Consultation"
+                />
+              </div>
+
+              <div className="form-field">
+                <label>Room</label>
+                <input
+                  type="text"
+                  value={formData.room}
+                  onChange={(e) => setFormData({ ...formData, room: e.target.value })}
+                  placeholder="e.g., Room 1"
+                />
+              </div>
+
+              <button type="submit" className="submit-btn">
+                Add Appointment
+              </button>
+            </form>
+          </div>
+        )}
       </div>
     </div>
   );
