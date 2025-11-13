@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import './App.css';
 
 import Home from './pages/Home/Home';
 import Login from './pages/Home/Login';
@@ -15,15 +16,15 @@ import DoctorPatients from './pages/Doctor/DoctorPatients';
 
 import ClinicDashboard from './pages/Clinic/ClinicDashboard';
 import ClinicHome from './pages/Clinic/ClinicHome';
-import KPIsView from "./pages/Clinic/KPIsView";           
+import KPIsView from "./pages/Clinic/KPIsView";
 import NoShowList from "./pages/Clinic/NoShowList";
 
-import AppointmentsPage from "./pages/Clinic/Appointments/AppointmentsPage";   
-import ManageAppointments from "./pages/Clinic/Appointments/ManageAppointments";           
+import AppointmentsPage from "./pages/Clinic/Appointments/AppointmentsPage";
+import ManageAppointments from "./pages/Clinic/Appointments/ManageAppointments";
 import CheckinCancellations from "./pages/Clinic/Appointments/CheckinCancellations";
-import TasksPage from "./pages/Clinic/Tasks/TasksPage"; 
-import TaskSummary from "./pages/Clinic/Tasks/TaskSummary";           
-import TaskList from "./pages/Clinic/Tasks/TaskList";   
+import TasksPage from "./pages/Clinic/Tasks/TasksPage";
+import TaskSummary from "./pages/Clinic/Tasks/TaskSummary";
+import TaskList from "./pages/Clinic/Tasks/TaskList";
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -47,7 +48,7 @@ const ManagerDashboard = () => {
     <div style={{ padding: '40px', textAlign: 'center' }}>
       <h1>Manager Dashboard</h1>
       <p>Welcome! This is your Manager Dashboard.</p>
-      <button 
+      <button
         onClick={logout}
         style={{
           padding: '12px 30px',
@@ -76,6 +77,15 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
 
+          <Route
+            path="/complete-profile"
+            element={
+              <ProtectedRoute allowedRoles={['staff', 'doctor', 'manager']}>
+                <UserProfile />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Staff Dashboard */}
           <Route
             path="/staff-dashboard"
@@ -85,30 +95,27 @@ function App() {
               </ProtectedRoute>
             }
           >
-            {/* Default → Clinic Home */}
             <Route index element={<ClinicHome />} />
             <Route path="home" element={<ClinicHome />} />
 
-            {/* Combined Pages */}
             <Route path="appointments" element={<AppointmentsPage />}>
-              <Route index element={<ManageAppointments />} />
+              <Route index element={<Navigate to="manage" replace />} />
               <Route path="manage" element={<ManageAppointments />} />
               <Route path="checkin" element={<CheckinCancellations />} />
             </Route>
 
             <Route path="tasks" element={<TasksPage />}>
-              <Route index element={<TaskSummary />} />
+              <Route index element={<Navigate to="summary" replace />} />
               <Route path="summary" element={<TaskSummary />} />
               <Route path="list" element={<TaskList />} />
             </Route>
 
 
-            {/* Additional Pages */}
             <Route path="no-shows" element={<NoShowList />} />
             <Route path="kpis" element={<KPIsView />} />
           </Route>
 
-          {/* Doctor Dashboard (Nested Routes) */}
+          {/* Doctor Dashboard  */}
           <Route
             path="/doctor-dashboard"
             element={
@@ -117,14 +124,12 @@ function App() {
               </ProtectedRoute>
             }
           >
-            {/* Default route → Home */}
-            <Route index element={<Navigate to="home" />} />
+            <Route index element={<Navigate to="home" replace />} />
             <Route path="home" element={<DoctorHome />} />
             <Route path="schedule" element={<DoctorSchedule />} />
             <Route path="patients/*" element={<DoctorPatients />} />
           </Route>
 
-          {/* Manager Dashboard */}
           <Route
             path="/manager-dashboard"
             element={
@@ -133,9 +138,8 @@ function App() {
               </ProtectedRoute>
             }
           />
-
           {/* Catch-All Route */}
-          <Route path="*" element={<Navigate to="/" />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
     </Router>
