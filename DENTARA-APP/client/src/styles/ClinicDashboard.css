@@ -562,3 +562,28 @@
   background: #7e5cfb;
   color: white;
 }
+.clinic-page {
+  padding: 20px;
+}
+
+.clinic-cards {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.clinic-cards .card {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 0 8px #ddd;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.chart-area {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 0 10px #ddd;
+}
