@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import "../../styles/ClinicDashboard.css";
-import { getFirestore, collection, getDocs } from "firebase/firestore";
+import { getFirestore, collection, onSnapshot } from "firebase/firestore";
 import { Line } from "react-chartjs-2";
+
 import {
   Chart as ChartJS,
   LineElement,
@@ -26,49 +27,51 @@ const NoShowList = () => {
   const [trendData, setTrendData] = useState([]);
 
   // ============================
-  // 🔥 FETCH FROM FIREBASE
+  // 🔥 REAL-TIME FETCH FROM APPOINTMENTS
   // ============================
-  const fetchNoShowData = async () => {
-    try {
-      const snapshot = await getDocs(collection(db, "noShows"));
-
-      const patientList = [];
-      let total = 0;
-      let rebooked = 0;
-      let escalations = 0;
-
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        patientList.push(data);
-
-        total += 1;
-        if (data.status === "Rebooked") rebooked += 1;
-        if (data.status === "Escalated") escalations += 1;
-      });
-
-      setStats({ total, rebooked, escalations });
-      setPatients(patientList);
-
-      // Trend Data Placeholder (replace later with weekly Firebase data)
-      setTrendData([5, 8, 12, 9, 14, 10]);
-
-    } catch (err) {
-      console.error("Error fetching No-Show data:", err);
-    }
-  };
-
   useEffect(() => {
-    fetchNoShowData();
-  }, []);
+  const unsub = onSnapshot(collection(db, "appointments"), (snapshot) => {
+
+    const patientList = [];
+    let total = 0;
+    let rebooked = 0;      // we will keep 0 because DB does not store this yet
+    let escalations = 0;   // same
+
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+
+      if (data.status.toLowerCase() === "no-show") {
+        total++;
+
+        patientList.push({
+          name: data.patientName || "Unknown",
+          date: data.date || "",
+          time: data.time || "",
+          reason: data.reason || "",
+          doctorId: data.doctorId || "",
+        });
+      }
+    });
+
+    setStats({ total, rebooked, escalations });
+    setPatients(patientList);
+
+    // simple demo trend
+    setTrendData([1,2,3, total, 2,1]);
+  });
+
+  return () => unsub();
+}, []);
+
 
   // =============================
   // 📊 CHART CONFIG
   // =============================
   const chartConfig = {
-    labels: ["Week 1", "Week 2", "Week 3", "Week 4", "Week 5", "Week 6"],
+    labels: ["W1", "W2", "W3", "W4", "W5", "Now"],
     datasets: [
       {
-        label: "# No-shows",
+        label: "No-shows",
         data: trendData,
         fill: true,
         tension: 0.4,
@@ -80,53 +83,68 @@ const NoShowList = () => {
     stats.total > 0 ? Math.round((stats.escalations / stats.total) * 100) : 0;
 
   return (
-    <div className="clinic-dashboard-container">
+  <div className="noshow-page">
 
-      {/* Top Summary Bar */}
-      <div className="dashboard-top-bar">
-        <div className="date-box">
-          <span className="calendar-icon">📅</span> Date
-        </div>
-
-        <div className="summary-box">Total No-shows: {stats.total}</div>
-        <div className="summary-box">Rebooked: {stats.rebooked}</div>
+    {/* 🔵 TOP SUMMARY CARDS */}
+    <div className="noshow-summary-row">
+      <div className="summary-card">
+        <h4>Total No-shows</h4>
+        <p className="big-number">{stats.total}</p>
       </div>
 
-      {/* Two Main Tiles */}
-      <div className="noshow-grid">
-        
-        {/* Left Stats Tile */}
-        <div className="noshow-tile stats-tile">
-          <h3>Total No-shows: {stats.total}</h3>
-          <p>Escalations: {stats.escalations}</p>
-
-          <div className="alert-circle">
-            <div className="alert-inner">
-              <span className="alert-icon">⚠️</span>
-              <p>{percentage}%</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Patient List Tile */}
-        <div className="noshow-tile list-tile">
-          <h3>Patient List</h3>
-          <div className="patient-lines">
-            {patients.map((p, index) => (
-              <div className="patient-line" key={index}></div>
-            ))}
-          </div>
-        </div>
+      <div className="summary-card">
+        <h4>Rebooked</h4>
+        <p className="big-number">{stats.rebooked}</p>
       </div>
 
-      {/* Trend Chart */}
-      <div className="trend-tile">
-        <h3>Weekly No-shows Trend</h3>
-
-        <Line data={chartConfig} height={100} />
+      <div className="summary-card">
+        <h4>Escalations</h4>
+        <div className="circle-box">
+          <span className="circle-number">{percentage}%</span>
+        </div>
       </div>
     </div>
-  );
+
+    {/* 🔵 MIDDLE GRID */}
+    <div className="noshow-middle-row">
+      
+      {/* Patient List */}
+      <div className="noshow-card">
+        <h3>No-show Patients</h3>
+
+        <div className="patient-list">
+          {patients.length === 0 && <p>No records</p>}
+
+          {patients.map((p, i) => (
+            <div className="patient-item" key={i}>
+              <strong>{p.patientName}</strong>
+              <span>{p.date} • {p.time}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Reason Breakdown */}
+      <div className="noshow-card">
+        <h3>Reasons Breakdown</h3>
+
+        <div className="breakdown">
+          <p>Cleaning: {patients.filter(p => p.reason?.toLowerCase().includes("clean")).length}</p>
+          <p>Consult: {patients.filter(p => p.reason?.toLowerCase().includes("consult")).length}</p>
+          <p>Other: {patients.length - patients.filter(p => p.reason).length}</p>
+        </div>
+      </div>
+
+    </div>
+
+    {/* 🔵 TREND CHART */}
+    <div className="noshow-chart-card">
+      <h3>Weekly No-shows Trend</h3>
+      <Line data={chartConfig} height={120} />
+    </div>
+
+  </div>
+);
 };
 
 export default NoShowList;
