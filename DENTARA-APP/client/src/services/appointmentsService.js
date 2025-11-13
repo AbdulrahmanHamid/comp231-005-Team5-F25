@@ -43,9 +43,14 @@ export const updateAppointmentStatus = async (appointmentId, newStatus) => {
 
 // 🔵 ADD NEW APPOINTMENT
 export const addNewAppointment = (data) => {
+  // check if patientId exists
+  if (!data.patientId) {
+    throw new Error("patientId is required");
+  }
+  
   return addDoc(collection(db, "appointments"), {
     ...data,
-    status: "Pending",
+    status: data.status || "Pending",
     createdAt: new Date().toISOString(),
   });
 };
