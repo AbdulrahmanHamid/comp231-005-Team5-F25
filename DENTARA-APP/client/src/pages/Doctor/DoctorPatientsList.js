@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, getDocs, query, orderBy, addDoc } from "firebase/firestore";
-import { db } from "../../firebase/firebaseConfig";
+import { listenToAllPatients, addNewPatient } from "../../services/doctorService";
 import "../../styles/DoctorDashboard.css";
 import "../../styles/DoctorPatients.css";
 
@@ -21,25 +20,20 @@ const DoctorPatientsList = () => {
   });
 
   useEffect(() => {
-    fetchPatients();
-  }, []);
+    // Listen to all patients
+    const unsubscribe = listenToAllPatients((patientsList) => {
+      // Sort by lastName
+      patientsList.sort((a, b) => {
+        const lastNameA = (a.lastName || '').toLowerCase();
+        const lastNameB = (b.lastName || '').toLowerCase();
+        return lastNameA.localeCompare(lastNameB);
+      });
+      setPatients(patientsList);
+      setLoading(false);
+    });
 
-  const fetchPatients = async () => {
-    try {
-      setLoading(true);
-      const patientsQuery = query(collection(db, 'patients'), orderBy('lastName'));
-      const patientsSnapshot = await getDocs(patientsQuery);
-      const patientsData = patientsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setPatients(patientsData);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching patients:', error);
-      setLoading(false);
-    }
-  };
+    return () => unsubscribe();
+  }, []);
 
   const handleAddPatient = async (e) => {
     e.preventDefault();
@@ -50,10 +44,9 @@ const DoctorPatientsList = () => {
     }
 
     try {
-      await addDoc(collection(db, 'patients'), {
+      await addNewPatient({
         ...formData,
         age: parseInt(formData.age) || 0,
-        createdAt: new Date().toISOString()
       });
 
       alert('Patient added successfully!');
@@ -66,7 +59,6 @@ const DoctorPatientsList = () => {
         email: '',
         condition: ''
       });
-      fetchPatients();
     } catch (error) {
       console.error('Error adding patient:', error);
       alert('Failed to add patient');

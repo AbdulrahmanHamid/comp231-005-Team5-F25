@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { doc, getDoc, collection, query, where, getDocs, addDoc, orderBy } from "firebase/firestore";
-import { db } from "../../firebase/firebaseConfig";
-import { getTodayLocal } from '../../utils/dateUtils';
 import { useAuth } from "../../contexts/AuthContext";
 import { FiArrowLeft } from "react-icons/fi";
+import { getPatientById, getPatientTreatments, getPatientClinicalNotes, addClinicalNote, getDoctorInfo } from "../../services/doctorService";
 import "../../styles/DoctorPatients.css";
 
 const DoctorPatientDetails = () => {
@@ -19,7 +17,6 @@ const DoctorPatientDetails = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [doctorName, setDoctorName] = useState('');
-  const today = getTodayLocal();
 
   useEffect(() => {
     fetchPatientData();
@@ -28,11 +25,8 @@ const DoctorPatientDetails = () => {
 
   const fetchDoctorName = async () => {
     try {
-      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        setDoctorName(`Dr. ${userData.firstName} ${userData.lastName}`);
-      }
+      const info = await getDoctorInfo(currentUser.uid);
+      if (info) setDoctorName(info.fullName);
     } catch (error) {
       console.error('Error fetching doctor name:', error);
     }
@@ -42,34 +36,17 @@ const DoctorPatientDetails = () => {
     try {
       setLoading(true);
 
-      // Fetch patient details
-      const patientDoc = await getDoc(doc(db, 'patients', patientId));
-      if (patientDoc.exists()) {
-        setPatient({ id: patientDoc.id, ...patientDoc.data() });
-      }
+      // for patient details
+      const patientData = await getPatientById(patientId);
+      setPatient(patientData);
 
-      // Fetch ALL treatments/notes for this patient
-      const treatmentsQuery = query(
-        collection(db, 'treatments'),
-        where('patientId', '==', patientId)
-      );
-      const treatmentsSnapshot = await getDocs(treatmentsQuery);
-      const allTreatments = treatmentsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      // Separate clinical notes from regular treatments in JavaScript
-      const clinicalNotesData = allTreatments
-        .filter(item => item.treatment === 'Clinical Note')
-        .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date, newest first
-
-      const treatmentsData = allTreatments
-        .filter(item => item.treatment !== 'Clinical Note')
-        .sort((a, b) => new Date(b.date) - new Date(a.date));
-
+      // for treatment history
+      const treatmentsData = await getPatientTreatments(patientId);
       setTreatments(treatmentsData);
-      setClinicalNotes(clinicalNotesData);
+
+      // for clinical notes
+      const notesData = await getPatientClinicalNotes(patientId);
+      setClinicalNotes(notesData);
 
       setLoading(false);
     } catch (error) {
@@ -88,17 +65,12 @@ const DoctorPatientDetails = () => {
     try {
       setSaving(true);
 
-      // Add new clinical note to Firestore
-      await addDoc(collection(db, 'treatments'), {
-        patientId: patientId,
-        patientName: `${patient.firstName} ${patient.lastName}`,
-        date: getTodayLocal(),
-        doctor: doctorName || `Dr. ${currentUser.email.split('@')[0]}`,
-        treatment: 'Clinical Note',
-        notes: newNote,
-        status: 'Completed',
-        createdAt: new Date().toISOString()
-      });
+      await addClinicalNote(
+        patientId,
+        `${patient.firstName} ${patient.lastName}`,
+        doctorName || `Dr. ${currentUser.email.split('@')[0]}`,
+        newNote
+      );
 
       alert('Note saved successfully!');
       setNewNote('');
@@ -131,7 +103,6 @@ const DoctorPatientDetails = () => {
       </div>
 
       <div className="patient-layout">
-        {/* Left section */}
         <div className="patient-main">
           <section className="patient-card">
             <h3>Patient Information</h3>
@@ -193,7 +164,6 @@ const DoctorPatientDetails = () => {
             </button>
           </section>
 
-          {/* Display All Clinical Notes */}
           <section className="patient-card">
             <h3>Clinical Notes History</h3>
             {clinicalNotes.length === 0 ? (
@@ -215,7 +185,6 @@ const DoctorPatientDetails = () => {
           </section>
         </div>
 
-        {/* Right section */}
         <aside className="quick-actions-box">
           <h3>Quick Actions</h3>
           <ul>
