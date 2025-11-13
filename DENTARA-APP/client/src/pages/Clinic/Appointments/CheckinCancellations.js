@@ -1,52 +1,41 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { listenToCheckinCancellations } from "../../../services/appointmentsService";
 
 const CheckinCancellations = () => {
-  const stats = {
-    total: 25,
-    checkedIn: 12,
-    cancelled: 3,
-    pending: 10,
-  };
+  const [list, setList] = useState([]);
+
+  useEffect(() => {
+    const unsub = listenToCheckinCancellations((data) => setList(data));
+    return () => unsub();
+  }, []);
 
   return (
-    <div className="tab-content">
-      <div className="filters">
-        <select><option>Filter by Date</option></select>
-        <select><option>Doctor</option></select>
-        <select><option>Status</option></select>
-      </div>
+    <div className="checkin-page">
+      <h2>Check-ins / Cancellations / No-Shows</h2>
 
-      <div className="checkin-layout">
-        <div className="table-area">
-          <table className="module-table">
-            <thead>
-              <tr>
-                <th>Patient</th>
-                <th>Doctor</th>
-                <th>Time</th>
-                <th>Status</th>
+      {list.length === 0 ? (
+        <p>No check-in or cancellations today.</p>
+      ) : (
+        <table className="clinic-table">
+          <thead>
+            <tr>
+              <th>Patient</th>
+              <th>Time</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {list.map((a) => (
+              <tr key={a.id}>
+                <td>{a.patientName}</td>
+                <td>{a.time}</td>
+                <td>{a.status}</td>
               </tr>
-            </thead>
-
-            <tbody>
-              <tr><td>John Doe</td><td>Dr. White</td><td>9:00 AM</td><td>Checked-in</td></tr>
-              <tr><td>Sarah Lee</td><td>Dr. Brown</td><td>10:00 AM</td><td>Pending</td></tr>
-            </tbody>
-          </table>
-
-          <button className="load-btn">Load More</button>
-        </div>
-
-        <div className="stats-box">
-          <h3>QUICK STATS</h3>
-          <p>Total Appointments: {stats.total}</p>
-          <p>Checked-in: {stats.checkedIn}</p>
-          <p>Cancelled: {stats.cancelled}</p>
-          <p>Pending: {stats.pending}</p>
-
-          <div className="fake-chart"></div>
-        </div>
-      </div>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 };

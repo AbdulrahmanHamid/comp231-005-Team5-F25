@@ -1,25 +1,26 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import "../../../styles/ClinicDashboard.css";
+import { listenToTasks } from "../../../services/tasksService";
 
 const TasksPage = () => {
+  const [tasks, setTasks] = useState([]);
+
+  useEffect(() => {
+    const unsub = listenToTasks((list) => setTasks(list));
+    return () => unsub();
+  }, []);
+
   return (
     <div>
       <h2>Tasks</h2>
 
-      {/* Simple Nav Buttons */}
       <div className="subnav-buttons">
-        <NavLink to="summary" className="subnav-btn">
-          Task Summary
-        </NavLink>
-
-        <NavLink to="list" className="subnav-btn">
-          Task List
-        </NavLink>
+        <NavLink to="summary" className="subnav-btn">Task Summary</NavLink>
+        <NavLink to="list" className="subnav-btn">Task List</NavLink>
       </div>
 
-      {/* Render nested pages */}
-      <Outlet />
+      {/* Pass tasks to child pages */}
+      <Outlet context={{ tasks }} />
     </div>
   );
 };
