@@ -1,148 +1,113 @@
+import React, { useState, useEffect } from "react";
+import {
+  updateAppointment,
+  deleteAppointment,
+  addNewAppointment,
+} from "../../../services/appointmentsService";
 
-// export default ManageAppointments;
-import React, { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../../../firebase/firebaseConfig";
+const ManageAppointments = ({ appointment, doctors }) => {
+  const isNew = !appointment || !appointment.id;
 
-const ManageAppointments = () => {
-  const [appointments, setAppointments] = useState([]);
-  const [filtered, setFiltered] = useState([]);
-  const [doctorsMap, setDoctorsMap] = useState({});
-
-  // Filter states
-  const [filterDate, setFilterDate] = useState("");
-  const [filterDoctor, setFilterDoctor] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
+  const [form, setForm] = useState({
+    patientName: "",
+    date: "",
+    time: "",
+    doctorId: "",
+    reason: "",
+    room: "",
+  });
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch appointments
-        const apptSnapshot = await getDocs(collection(db, "appointments"));
-        const apptList = apptSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+    if (!appointment) {
+      setForm({
+        patientName: "",
+        date: "",
+        time: "",
+        doctorId: "",
+        reason: "",
+        room: "",
+      });
+    } else {
+      setForm({
+        patientName: appointment.patientName || "",
+        date: appointment.date || "",
+        time: appointment.time || "",
+        doctorId: appointment.doctorId || "",
+        reason: appointment.reason || "",
+        room: appointment.room || "",
+      });
+    }
+  }, [appointment]);
 
-        // Fetch doctor names
-        const userSnapshot = await getDocs(collection(db, "users"));
-        const docMap = {};
+  const updateField = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
 
-        userSnapshot.docs.forEach((doc) => {
-          const data = doc.data();
-          if (data.role === "doctor") {
-            const fullName = `${data.firstName || ""} ${data.lastName || ""}`.trim();
-            docMap[doc.id] = fullName;
-          }
-        });
-
-        setDoctorsMap(docMap);
-        setAppointments(apptList);
-        setFiltered(apptList); // default view
-
-      } catch (error) {
-        console.error("Error loading appointments:", error);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  // Combined Filter Logic
-  useEffect(() => {
-    let result = [...appointments];
-
-    if (filterDate) {
-      result = result.filter((a) => a.date === filterDate);
+  const handleSave = async () => {
+    if (!form.patientName || !form.date || !form.time) {
+      alert("Please fill required fields!");
+      return;
     }
 
-    if (filterDoctor) {
-      result = result.filter((a) => a.doctorId === filterDoctor);
-    }
+    if (isNew) await addNewAppointment(form);
+    else await updateAppointment(appointment.id, form);
 
-    if (filterStatus) {
-      result = result.filter((a) => a.status === filterStatus);
-    }
+    alert(isNew ? "Appointment added!" : "Appointment updated!");
+  };
 
-    setFiltered(result);
-  }, [filterDate, filterDoctor, filterStatus, appointments]);
+  const handleDelete = async () => {
+    if (isNew) return;
+    if (!window.confirm("Delete this appointment?")) return;
+    await deleteAppointment(appointment.id);
+  };
 
   return (
-    <div className="tab-content">
-      <div className="top-controls">
-        <button className="green-btn">+ Add Appointment</button>
+    <div className="manage-box">
+      <h3>{isNew ? "Add Appointment" : "Edit Appointment"}</h3>
 
-        {/* FILTERS */}
-        <div className="filters">
-          
-          {/* DATE FILTER */}
-          <input
-            type="date"
-            value={filterDate}
-            onChange={(e) => setFilterDate(e.target.value)}
-          />
+      <div className="manage-form">
+        <input
+          placeholder="Patient Name"
+          value={form.patientName}
+          onChange={(e) => updateField("patientName", e.target.value)}
+        />
 
-          {/* DOCTOR FILTER */}
-          <select
-            value={filterDoctor}
-            onChange={(e) => setFilterDoctor(e.target.value)}
-          >
-            <option value="">All Doctors</option>
-            {Object.entries(doctorsMap).map(([id, name]) => (
-              <option key={id} value={id}>{name}</option>
-            ))}
-          </select>
+        <input type="date" value={form.date} onChange={(e) => updateField("date", e.target.value)} />
 
-          {/* STATUS FILTER */}
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-          >
-            <option value="">All Status</option>
-            <option value="Scheduled">Scheduled</option>
-            <option value="Checked-in">Checked-in</option>
-            <option value="Pending">Pending</option>
-            <option value="Cancelled">Cancelled</option>
-          </select>
-        </div>
+        <input type="time" value={form.time} onChange={(e) => updateField("time", e.target.value)} />
+
+        {/* Doctor Dropdown */}
+        <select value={form.doctorId} onChange={(e) => updateField("doctorId", e.target.value)}>
+          <option value="">Select Doctor</option>
+          {doctors.map((doc) => (
+            <option key={doc.id} value={doc.id}>
+              {doc.fullName}
+            </option>
+          ))}
+        </select>
+
+        <input
+          placeholder="Reason"
+          value={form.reason}
+          onChange={(e) => updateField("reason", e.target.value)}
+        />
+
+        <input
+          placeholder="Room"
+          value={form.room}
+          onChange={(e) => updateField("room", e.target.value)}
+        />
       </div>
 
-      {/* TABLE */}
-      <table className="module-table">
-        <thead>
-          <tr>
-            <th>Patient</th>
-            <th>Doctor</th>
-            <th>Date</th>
-            <th>Time</th>
-            <th>Reason</th>
-            <th>Status</th>
-          </tr>
-        </thead>
+      <button className="save-btn" onClick={handleSave}>
+        💾 {isNew ? "Add Appointment" : "Save Changes"}
+      </button>
 
-        <tbody>
-          {filtered.length > 0 ? (
-            filtered.map((a) => (
-              <tr key={a.id}>
-                <td>{a.patientName}</td>
-                <td>{doctorsMap[a.doctorId] || "Unknown Doctor"}</td>
-                <td>{a.date}</td>
-                <td>{a.time}</td>
-                <td>{a.reason}</td>
-                <td>{a.status}</td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="6" style={{ textAlign: "center" }}>
-                No appointments found
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-
-      <button className="load-btn">Load More</button>
+      {!isNew && (
+        <button className="delete-btn" onClick={handleDelete}>
+          🗑 Delete Appointment
+        </button>
+      )}
     </div>
   );
 };
