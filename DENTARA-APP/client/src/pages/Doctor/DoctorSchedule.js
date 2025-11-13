@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { collection, query, where, getDocs, addDoc, updateDoc, doc, getDoc } from "firebase/firestore";
-import { db } from "../../firebase/firebaseConfig";
-import { getTodayLocal } from "../../utils/dateUtils";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import {listenToDoctorAppointments,updateAppointmentStatus,addDoctorAppointment,getAllPatients,getDoctorInfo} from "../../services/doctorService";
+import { getTodayLocal } from "../../utils/dateUtils";
 import "../../styles/DoctorSchedule.css";
-
 
 const DoctorSchedule = () => {
   const { currentUser } = useAuth();
@@ -22,7 +20,7 @@ const DoctorSchedule = () => {
   });
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
-
+  
   const [formData, setFormData] = useState({
     patientId: '',
     time: '',
@@ -31,77 +29,42 @@ const DoctorSchedule = () => {
   });
 
   useEffect(() => {
-    fetchAppointments();
-    fetchPatients();
-    fetchDoctorName();
-  }, [selectedDate, currentUser]);
+    if (!currentUser) return;
 
-  const fetchDoctorName = async () => {
-    try {
-      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        setDoctorName(`Dr. ${userData.firstName} ${userData.lastName}`);
+    //  doctor info
+    getDoctorInfo(currentUser.uid).then((info) => {
+      if (info) setDoctorName(info.fullName);
+    });
+
+    // all patients
+    getAllPatients().then((patientsList) => {
+      setPatients(patientsList);
+    });
+
+    // Listen to appointments for selected date
+    const unsubscribe = listenToDoctorAppointments(
+      currentUser.uid,
+      selectedDate,
+      (appointmentsList) => {
+        setAppointments(appointmentsList);
+
+        // Calculate stats
+        const total = appointmentsList.length;
+        const pending = appointmentsList.filter(a => a.status === 'Pending' || a.status === 'Confirmed').length;
+        const completed = appointmentsList.filter(a => a.status === 'Completed').length;
+        const cancelled = appointmentsList.filter(a => a.status === 'Cancelled' || a.status === 'No-Show').length;
+
+        setStats({ total, pending, completed, cancelled });
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error fetching doctor name:', error);
-      setDoctorName('Dr. User');
-    }
-  };
+    );
 
-  const fetchPatients = async () => {
-    try {
-      const patientsSnapshot = await getDocs(collection(db, 'patients'));
-      const patientsData = patientsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setPatients(patientsData);
-    } catch (error) {
-      console.error('Error fetching patients:', error);
-    }
-  };
-
-  const fetchAppointments = async () => {
-    try {
-      setLoading(true);
-
-      const appointmentsQuery = query(
-        collection(db, 'appointments'),
-        where('doctorId', '==', currentUser.uid),
-        where('date', '==', selectedDate)
-      );
-
-      const appointmentsSnapshot = await getDocs(appointmentsQuery);
-      const appointmentsData = appointmentsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      appointmentsData.sort((a, b) => {
-        const timeA = new Date(`1970-01-01 ${a.time}`);
-        const timeB = new Date(`1970-01-01 ${b.time}`);
-        return timeA - timeB;
-      });
-
-      setAppointments(appointmentsData);
-
-      const total = appointmentsData.length;
-      const pending = appointmentsData.filter(a => a.status === 'Pending' || a.status === 'Confirmed').length;
-      const completed = appointmentsData.filter(a => a.status === 'Completed').length;
-      const cancelled = appointmentsData.filter(a => a.status === 'Cancelled' || a.status === 'No-Show').length;
-
-      setStats({ total, pending, completed, cancelled });
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching appointments:', error);
-      setLoading(false);
-    }
-  };
+    return () => unsubscribe();
+  }, [currentUser, selectedDate]);
 
   const handleAddAppointment = async (e) => {
     e.preventDefault();
-
+    
     if (!formData.patientId || !formData.time || !formData.reason) {
       alert('Please fill in all required fields');
       return;
@@ -109,8 +72,8 @@ const DoctorSchedule = () => {
 
     try {
       const selectedPatient = patients.find(p => p.id === formData.patientId);
-
-      await addDoc(collection(db, 'appointments'), {
+      
+      await addDoctorAppointment({
         patientId: formData.patientId,
         patientName: `${selectedPatient.firstName} ${selectedPatient.lastName}`,
         doctorId: currentUser.uid,
@@ -118,14 +81,11 @@ const DoctorSchedule = () => {
         time: formData.time,
         reason: formData.reason,
         room: formData.room || 'TBD',
-        status: 'Confirmed',
-        createdAt: new Date().toISOString()
       });
 
       alert('Appointment added successfully!');
       setShowAddForm(false);
       setFormData({ patientId: '', time: '', reason: '', room: '' });
-      fetchAppointments();
     } catch (error) {
       console.error('Error adding appointment:', error);
       alert('Failed to add appointment');
@@ -134,9 +94,7 @@ const DoctorSchedule = () => {
 
   const handleStartAppointment = async (appointmentId) => {
     try {
-      const appointmentRef = doc(db, 'appointments', appointmentId);
-      await updateDoc(appointmentRef, { status: 'In Progress' });
-      fetchAppointments();
+      await updateAppointmentStatus(appointmentId, 'In Progress');
     } catch (error) {
       console.error('Error updating appointment:', error);
     }
@@ -144,9 +102,7 @@ const DoctorSchedule = () => {
 
   const handleCompleteAppointment = async (appointmentId) => {
     try {
-      const appointmentRef = doc(db, 'appointments', appointmentId);
-      await updateDoc(appointmentRef, { status: 'Completed' });
-      fetchAppointments();
+      await updateAppointmentStatus(appointmentId, 'Completed');
     } catch (error) {
       console.error('Error completing appointment:', error);
     }
@@ -157,7 +113,7 @@ const DoctorSchedule = () => {
   };
 
   const getStatusClass = (status) => {
-    switch (status) {
+    switch(status) {
       case 'Completed': return 'status-badge status-completed';
       case 'Pending': return 'status-badge status-pending';
       case 'Confirmed': return 'status-badge status-confirmed';
@@ -177,8 +133,8 @@ const DoctorSchedule = () => {
 
       <div className="schedule-container">
         <div className="date-row">
-          <input
-            type="date"
+          <input 
+            type="date" 
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
             className="date-btn"
@@ -228,21 +184,21 @@ const DoctorSchedule = () => {
                       </td>
                       <td>
                         {apt.status === 'Pending' || apt.status === 'Confirmed' ? (
-                          <button
+                          <button 
                             className="table-btn"
                             onClick={() => handleStartAppointment(apt.id)}
                           >
                             Start
                           </button>
                         ) : apt.status === 'In Progress' ? (
-                          <button
+                          <button 
                             className="table-btn"
                             onClick={() => handleCompleteAppointment(apt.id)}
                           >
                             Complete
                           </button>
                         ) : (
-                          <button
+                          <button 
                             className="table-btn"
                             onClick={() => handleViewPatient(apt.patientId)}
                           >
@@ -260,7 +216,7 @@ const DoctorSchedule = () => {
 
         <div className="action-row">
           <h3>Quick Actions</h3>
-          <button className="action-btn" onClick={fetchAppointments}>
+          <button className="action-btn" onClick={() => setSelectedDate(getTodayLocal())}>
             🔄 Refresh
           </button>
           <button className="action-btn" onClick={() => setShowAddForm(!showAddForm)}>
@@ -276,7 +232,7 @@ const DoctorSchedule = () => {
                 <label>Patient *</label>
                 <select
                   value={formData.patientId}
-                  onChange={(e) => setFormData({ ...formData, patientId: e.target.value })}
+                  onChange={(e) => setFormData({...formData, patientId: e.target.value})}
                   required
                 >
                   <option value="">Select Patient</option>
@@ -293,7 +249,7 @@ const DoctorSchedule = () => {
                 <input
                   type="time"
                   value={formData.time}
-                  onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                  onChange={(e) => setFormData({...formData, time: e.target.value})}
                   required
                 />
               </div>
@@ -303,7 +259,7 @@ const DoctorSchedule = () => {
                 <input
                   type="text"
                   value={formData.reason}
-                  onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                  onChange={(e) => setFormData({...formData, reason: e.target.value})}
                   required
                   placeholder="e.g., Cleaning, Filling, Consultation"
                 />
@@ -314,7 +270,7 @@ const DoctorSchedule = () => {
                 <input
                   type="text"
                   value={formData.room}
-                  onChange={(e) => setFormData({ ...formData, room: e.target.value })}
+                  onChange={(e) => setFormData({...formData, room: e.target.value})}
                   placeholder="e.g., Room 1"
                 />
               </div>

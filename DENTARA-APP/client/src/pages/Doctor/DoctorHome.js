@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, updateDoc, doc, getDoc } from 'firebase/firestore';
-import { db } from '../../firebase/firebaseConfig';
-import { getTodayLocal } from '../../utils/dateUtils';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { listenToDoctorTodayAppointments, listenToDoctorAlerts, acknowledgeAlert, getDoctorInfo } from '../../services/doctorService';
 import '../../styles/DoctorDashboard.css';
 
 const DoctorHome = () => {
@@ -20,86 +18,54 @@ const DoctorHome = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  const today = getTodayLocal();
-
   useEffect(() => {
-    fetchDashboardData();
-    fetchDoctorName();
-  }, [currentUser]);
-  useEffect(() => {
-    fetchDashboardData();
-  }, [currentUser]);
+    if (!currentUser) return;
 
+    // Fetch doctor info
+    getDoctorInfo(currentUser.uid).then((info) => {
+      if (info) setDoctorName(info.fullName);
+    });
 
-  const fetchDoctorName = async () => {
-    try {
-      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        setDoctorName(`Dr. ${userData.firstName} ${userData.lastName}`);
+    // get today's appointments
+    const unsubscribeAppointments = listenToDoctorTodayAppointments(
+      currentUser.uid,
+      (appointmentsList) => {
+        setAppointments(appointmentsList);
+
+        // Calculate stats
+        const completed = appointmentsList.filter(a => a.status === 'Completed').length;
+        const pending = appointmentsList.filter(a => a.status === 'Pending' || a.status === 'Confirmed').length;
+        const noShows = appointmentsList.filter(a => a.status === 'Cancelled' || a.status === 'No-Show').length;
+
+        setStats({
+          completed,
+          pending,
+          noShows,
+          total: appointmentsList.length
+        });
+
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error fetching doctor name:', error);
-    }
-  };
+    );
 
+    // Listen to alerts
+    const unsubscribeAlerts = listenToDoctorAlerts(
+      currentUser.uid,
+      (alertsList) => {
+        setAlerts(alertsList);
+      }
+    );
 
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-
-      const appointmentsQuery = query(
-        collection(db, 'appointments'),
-        where('doctorId', '==', currentUser.uid),
-        where('date', '==', today)
-      );
-      const appointmentsSnapshot = await getDocs(appointmentsQuery);
-      const appointmentsData = appointmentsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      setAppointments(appointmentsData);
-
-      const completed = appointmentsData.filter(a => a.status === 'Completed').length;
-      const pending = appointmentsData.filter(a => a.status === 'Pending' || a.status === 'Confirmed').length;
-      const noShows = appointmentsData.filter(a => a.status === 'Cancelled' || a.status === 'No-Show').length;
-
-      setStats({
-        completed,
-        pending,
-        noShows,
-        total: appointmentsData.length
-      });
-
-      const alertsQuery = query(
-        collection(db, 'alerts'),
-        where('doctorId', '==', currentUser.uid),
-        where('isAcknowledged', '==', false)
-      );
-      const alertsSnapshot = await getDocs(alertsQuery);
-      const alertsData = alertsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      setAlerts(alertsData);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      setLoading(false);
-    }
-  };
-
+    return () => {
+      unsubscribeAppointments();
+      unsubscribeAlerts();
+    };
+  }, [currentUser]);
 
   const handleAcknowledgeAlert = async (alertId) => {
     try {
-      const alertRef = doc(db, 'alerts', alertId);
-      await updateDoc(alertRef, {
-        isAcknowledged: true
-      });
-      setAlerts(alerts.filter(a => a.id !== alertId));
+      await acknowledgeAlert(alertId);
+      // Alert will be removed automatically by listener
     } catch (error) {
       console.error('Error acknowledging alert:', error);
     }
@@ -116,7 +82,6 @@ const DoctorHome = () => {
 
   const handleScheduleTreatment = () => {
     navigate('/doctor-dashboard/schedule');
-    alert('Use the "Add Appointment" button to schedule a treatment');
   };
 
   const handleViewFollowUps = () => {
