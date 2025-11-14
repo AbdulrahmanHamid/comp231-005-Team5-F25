@@ -10,7 +10,7 @@ import {
   onSnapshot,
 } from "firebase/firestore";
 
-// 🔵 LISTEN TO ALL APPOINTMENTS
+//  LISTEN TO ALL APPOINTMENTS
 export const listenToAllAppointments = (callback) => {
   const q = query(collection(db, "appointments"));
   return onSnapshot(q, (snapshot) => {
@@ -19,7 +19,7 @@ export const listenToAllAppointments = (callback) => {
   });
 };
 
-// 🔵 LISTEN TO TODAY CHECK-IN/CANCEL/NO-SHOW
+// LISTEN TO TODAY CHECK-IN/CANCEL/NO-SHOW
 export const listenToCheckinCancellations = (callback) => {
   const today = new Date().toISOString().split("T")[0];
 
@@ -35,13 +35,13 @@ export const listenToCheckinCancellations = (callback) => {
   });
 };
 
-// 🔵 UPDATE STATUS
+// UPDATE STATUS
 export const updateAppointmentStatus = async (appointmentId, newStatus) => {
   const ref = doc(db, "appointments", appointmentId);
   await updateDoc(ref, { status: newStatus });
 };
 
-// 🔵 ADD NEW APPOINTMENT
+// ADD NEW APPOINTMENT
 export const addNewAppointment = (data) => {
   // check if patientId exists
   if (!data.patientId) {
@@ -55,12 +55,12 @@ export const addNewAppointment = (data) => {
   });
 };
 
-// 🔵 UPDATE AN APPOINTMENT
+// UPDATE AN APPOINTMENT
 export const updateAppointment = (id, data) => {
   return updateDoc(doc(db, "appointments", id), data);
 };
 
-// 🔵 DELETE AN APPOINTMENT
+// DELETE AN APPOINTMENT
 export const deleteAppointment = (id) => {
   return deleteDoc(doc(db, "appointments", id));
 };
