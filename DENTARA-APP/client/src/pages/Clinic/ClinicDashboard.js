@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, useNavigate,Outlet } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   FiHome,
@@ -14,15 +14,22 @@ import "../../styles/ClinicDashboard.css";
 
 const ClinicDashboard = () => {
   const { logout } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <div className="clinic-layout">
       {/* Header */}
       <header className="clinic-header">
         <h1>CLINIC DASHBOARD</h1>
+
         <div className="clinic-header-buttons">
-          <button className="kpi-btn">KPI Tiles</button>
-          <button className="wrapup-btn active">Daily Wrap-Up</button>
+          <button className="kpi-btn" onClick={() => navigate("kpis")}>
+            KPI Tiles
+          </button>
+
+          <button className="wrapup-btn active" onClick={() => navigate("home")}>
+            Daily Wrap-Up
+          </button>
         </div>
       </header>
 
