@@ -26,6 +26,11 @@ import TasksPage from "./pages/Clinic/Tasks/TasksPage";
 import TaskSummary from "./pages/Clinic/Tasks/TaskSummary";
 import TaskList from "./pages/Clinic/Tasks/TaskList";
 
+import PatientsPage from "./pages/Clinic/Patients/PatientsPage";
+import DoctorPatientsPage from "./pages/Clinic/Patients/DoctorPatients";
+import AllPatientsPage from "./pages/Clinic/Patients/AllPatients";
+import PatientDetailsPage from "./pages/Clinic/Patients/PatientDetails";
+
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { currentUser, userRole } = useAuth();
@@ -110,6 +115,10 @@ function App() {
               <Route path="list" element={<TaskList />} />
             </Route>
 
+            <Route path="patients" element={<PatientsPage />} />
+            <Route path="patients/doctor/:doctorId" element={<DoctorPatientsPage />} />
+            <Route path="patients/all" element={<AllPatientsPage />} />
+            <Route path="patients/details/:patientId" element={<PatientDetailsPage />} />
 
             <Route path="no-shows" element={<NoShowList />} />
             <Route path="kpis" element={<KPIsView />} />

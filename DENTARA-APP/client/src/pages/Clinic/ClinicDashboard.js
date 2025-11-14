@@ -1,8 +1,6 @@
 import React from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
-
 import {
   FiHome,
   FiClipboard,
@@ -10,27 +8,21 @@ import {
   FiLogOut,
   FiList,
   FiCalendar,
+  FiUsers,
 } from "react-icons/fi";
 import "../../styles/ClinicDashboard.css";
 
 const ClinicDashboard = () => {
   const { logout } = useAuth();
-  const navigate = useNavigate();
 
   return (
     <div className="clinic-layout">
       {/* Header */}
       <header className="clinic-header">
         <h1>CLINIC DASHBOARD</h1>
-
         <div className="clinic-header-buttons">
-          <button className="kpi-btn" onClick={() => navigate("kpis")}>
-            KPI Tiles
-          </button>
-
-          <button className="wrapup-btn active" onClick={() => navigate("home")}>
-            Daily Wrap-Up
-          </button>
+          <button className="kpi-btn">KPI Tiles</button>
+          <button className="wrapup-btn active">Daily Wrap-Up</button>
         </div>
       </header>
 
@@ -40,29 +32,43 @@ const ClinicDashboard = () => {
           <nav>
             <ul>
               <li>
-                <NavLink to="home">
+                <NavLink to="/staff-dashboard/home">
                   <FiHome /> Home
                 </NavLink>
               </li>
-
-              {/* NEW COMBINED APPOINTMENTS PAGE */}
               <li>
-                <NavLink to="appointments">
+                <NavLink to="/staff-dashboard/appointments">
                   <FiCalendar /> Appointments
                 </NavLink>
               </li>
-
-              {/* NEW COMBINED TASKS PAGE */}
               <li>
-                <NavLink to="tasks">
+                <NavLink to="/staff-dashboard/tasks">
                   <FiClipboard /> Tasks
                 </NavLink>
               </li>
-
-              {/* KEEP IF YOU STILL HAVE NO-SHOWS PAGE */}
               <li>
-                <NavLink to="no-shows">
+                <NavLink to="/staff-dashboard/patients">
+                  <FiUsers /> Patients
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/staff-dashboard/recalls">
+                  <FiList /> Recalls
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/staff-dashboard/no-shows">
                   <FiList /> No-shows
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/staff-dashboard/messages">
+                  <FiPhoneCall /> Call & Message
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/staff-dashboard/schedule">
+                  <FiCalendar /> Schedule
                 </NavLink>
               </li>
             </ul>
