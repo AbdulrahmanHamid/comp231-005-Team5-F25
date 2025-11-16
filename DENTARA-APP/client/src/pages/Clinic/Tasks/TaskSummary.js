@@ -1,8 +1,17 @@
-import React from "react";
-import { useOutletContext } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { listenToTasks } from "../../../services/tasksService";
 
 const TaskSummary = () => {
-  const { tasks = [] } = useOutletContext(); // 🔥 gets real-time tasks
+  const [tasks, setTasks] = useState([]);
+
+  // 🔵 Sync tasks from Firebase (same as TaskList)
+  useEffect(() => {
+    const unsubscribe = listenToTasks((updatedTasks) => {
+      setTasks(updatedTasks);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const total = tasks.length;
   const pending = tasks.filter(t => t.status === "Pending").length;
@@ -21,9 +30,9 @@ const TaskSummary = () => {
       </div>
 
       <div className="summary-progress">
-        <div 
-          className="bar" 
-          style={{ width: `${total ? (completed/total)*100 : 0}%` }}
+        <div
+          className="bar"
+          style={{ width: `${total ? (completed / total) * 100 : 0}%` }}
         ></div>
       </div>
     </div>
