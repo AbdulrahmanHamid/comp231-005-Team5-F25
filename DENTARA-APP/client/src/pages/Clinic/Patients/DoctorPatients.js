@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getPatientsByDoctor } from "../../../services/patientsService";
-import { getDoctorInfo } from "../../../services/doctorService";
+import { listenToDoctors } from "../../../services/usersService";
 import "../../../styles/ClinicDashboard.css";
 
 const DoctorPatients = () => {
@@ -12,30 +12,42 @@ const DoctorPatients = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchData();
+    const unsubscribeDoctors = listenToDoctors((doctorsList) => {
+      const currentDoctor = doctorsList.find((d) => d.id === doctorId);
+      setDoctor(currentDoctor);
+    });
+
+    return () => unsubscribeDoctors();
   }, [doctorId]);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch doctor info
-      const doctorInfo = await getDoctorInfo(doctorId);
-      setDoctor(doctorInfo);
+  useEffect(() => {
+    const fetchPatients = async () => {
+      try {
+        const patientsList = await getPatientsByDoctor(doctorId);
+        patientsList.sort((a, b) => {
+          const lastNameA = (a.lastName || "").toLowerCase();
+          const lastNameB = (b.lastName || "").toLowerCase();
+          return lastNameA.localeCompare(lastNameB);
+        });
+        setPatients(patientsList);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching patients:", error);
+        setLoading(false);
+      }
+    };
 
-      // Fetch patients
-      const patientsList = await getPatientsByDoctor(doctorId);
-      setPatients(patientsList);
-
-      setLoading(false);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      setLoading(false);
+    if (doctorId) {
+      fetchPatients();
     }
-  };
+  }, [doctorId]);
 
   if (loading) {
-    return <div className="clinic-content-box"><p>Loading...</p></div>;
+    return (
+      <div className="clinic-content-box">
+        <p>Loading...</p>
+      </div>
+    );
   }
 
   return (
@@ -67,9 +79,9 @@ const DoctorPatients = () => {
             {patients.map((patient) => (
               <tr key={patient.id}>
                 <td>{patient.firstName} {patient.lastName}</td>
-                <td>{patient.age}</td>
-                <td>{patient.phone}</td>
-                <td>{patient.condition}</td>
+                <td>{patient.age || "-"}</td>
+                <td>{patient.phone || "-"}</td>
+                <td>{patient.condition || "-"}</td>
                 <td>
                   <button
                     className="clinic-btn-small"

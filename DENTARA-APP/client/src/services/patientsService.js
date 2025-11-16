@@ -1,79 +1,106 @@
-import { db } from "../firebase/firebaseConfig";
 import {
+  getFirestore,
   collection,
   addDoc,
   updateDoc,
   deleteDoc,
   doc,
+  getDocs,
   query,
   where,
-  getDocs,
-  getDoc,
   onSnapshot,
 } from "firebase/firestore";
 
-//  trying to get all patients checki to their ids
+const db = getFirestore();
+
 export const listenToAllPatients = (callback) => {
-  return onSnapshot(collection(db, "patients"), (snapshot) => {
-    const list = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-    callback(list);
+  const patientsRef = collection(db, "patients");
+  const unsubscribe = onSnapshot(patientsRef, (snapshot) => {
+    const patientsList = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    callback(patientsList);
   });
+  return unsubscribe;
 };
 
-//  GET ALL PATIENTS
-export const getAllPatients = async () => {
-  const patientsSnapshot = await getDocs(collection(db, "patients"));
-  return patientsSnapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  }));
-};
-
-// by id
 export const getPatientById = async (patientId) => {
-  const patientDoc = await getDoc(doc(db, "patients", patientId));
-  if (patientDoc.exists()) {
-    return { id: patientDoc.id, ...patientDoc.data() };
+  try {
+    const patientRef = doc(db, "patients", patientId);
+    const patientSnap = await getDocs(query(collection(db, "patients"), where("__name__", "==", patientId)));
+    if (patientSnap.docs.length > 0) {
+      return { id: patientSnap.docs[0].id, ...patientSnap.docs[0].data() };
+    }
+    return null;
+  } catch (error) {
+    console.error("Error fetching patient:", error);
+    return null;
   }
-  return null;
 };
-
 
 export const getPatientsByDoctor = async (doctorId) => {
-  // Get all appointments for this doctor
-  const q = query(
-    collection(db, "appointments"),
-    where("doctorId", "==", doctorId)
-  );
-  const appointmentsSnapshot = await getDocs(q);
-  
-  // Get unique patient IDs
-  const patientIds = [...new Set(
-    appointmentsSnapshot.docs.map(doc => doc.data().patientId).filter(Boolean)
-  )];
-  
-  //  patient details
-  const patients = await Promise.all(
-    patientIds.map(id => getPatientById(id))
-  );
-  
-  return patients.filter(Boolean); // Remove nulls
+  try {
+    const patientsRef = collection(db, "patients");
+    const q = query(patientsRef, where("doctorId", "==", doctorId));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error("Error fetching patients:", error);
+    return [];
+  }
 };
 
-// add new patient
-export const addNewPatient = async (data) => {
-  return addDoc(collection(db, "patients"), {
-    ...data,
-    createdAt: new Date().toISOString(),
-  });
+export const addNewPatient = async (patientData) => {
+  try {
+    const patientsRef = collection(db, "patients");
+    const docRef = await addDoc(patientsRef, {
+      ...patientData,
+      createdAt: new Date().toISOString(),
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error("Error adding patient:", error);
+    throw error;
+  }
 };
 
-// UPDATE PATIENT
-export const updatePatient = async (id, data) => {
-  return updateDoc(doc(db, "patients", id), data);
+export const updatePatient = async (patientId, patientData) => {
+  try {
+    const patientRef = doc(db, "patients", patientId);
+    await updateDoc(patientRef, {
+      ...patientData,
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Error updating patient:", error);
+    throw error;
+  }
 };
 
-// DELETE PATIENT
-export const deletePatient = async (id) => {
-  return deleteDoc(doc(db, "patients", id));
+export const deletePatient = async (patientId) => {
+  try {
+    const patientRef = doc(db, "patients", patientId);
+    await deleteDoc(patientRef);
+  } catch (error) {
+    console.error("Error deleting patient:", error);
+    throw error;
+  }
+};
+
+export const getAllPatients = async () => {
+  try {
+    const patientsRef = collection(db, "patients");
+    const snapshot = await getDocs(patientsRef);
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error("Error fetching all patients:", error);
+    return [];
+  }
 };

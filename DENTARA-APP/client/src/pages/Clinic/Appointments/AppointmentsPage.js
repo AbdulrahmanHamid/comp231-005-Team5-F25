@@ -1,142 +1,101 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { listenToAllAppointments } from "../../../services/appointmentsService";
-import { listenToDoctors } from "../../../services/usersService";
 import ManageAppointments from "./ManageAppointments";
+import FilterBar from "../../../components/FilterBar";
 import "../../../styles/ClinicDashboard.css";
-
-const formatDate = () => new Date().toISOString().split("T")[0];
 
 const AppointmentsPage = () => {
   const [appointments, setAppointments] = useState([]);
-  const [filtered, setFiltered] = useState([]);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [filters, setFilters] = useState({ status: "All", date: "All", sort: "Date" });
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState("all");
-
-  // Load doctors
-  const [doctors, setDoctors] = useState([]);
   useEffect(() => {
-    const unsub = listenToDoctors((list) => setDoctors(list));
-    return () => unsub();
+    const unsub = listenToAllAppointments(setAppointments);
+    return unsub;
   }, []);
 
-  // Load appointments
-  useEffect(() => {
-    const unsub = listenToAllAppointments((list) => {
-      const safeList = list.map((a) => {
-        const doctor = doctors.find((d) => d.id === a.doctorId);
-        return {
-          ...a,
-          doctorName: doctor ? doctor.fullName : "Unknown",
-        };
-      });
-
-      // sort by date + time
-      safeList.sort((a, b) => {
-        if (!a.date || !b.date) return 0;
-        if (a.date === b.date) {
-          if (a.time && b.time) return a.time.localeCompare(b.time);
-          return 0;
-        }
-        return a.date.localeCompare(b.date);
-      });
-
-      setAppointments(safeList);
-      setFiltered(safeList);
-    });
-
-    return () => unsub();
-  }, [doctors]);
-
-  // Search & Filters
-  useEffect(() => {
-    let result = [...appointments];
-    const today = formatDate();
-
-    if (search.trim() !== "") {
-      result = result.filter((a) =>
-        `${a.patientName} ${a.doctorName} ${a.reason}`
-          .toLowerCase()
-          .includes(search.toLowerCase())
-      );
-    }
-
-    if (statusFilter !== "all") {
-      result = result.filter((a) => a.status === statusFilter);
-    }
-
-    if (dateFilter === "today") {
-      result = result.filter((a) => a.date === today);
-    } else if (dateFilter === "upcoming") {
-      result = result.filter((a) => a.date > today);
-    }
-
-    setFiltered(result);
-    setSelectedAppointment(result[0] || null);
-  }, [search, statusFilter, dateFilter, appointments]);
-
-  const statusClass = (status) => {
-    switch ((status || "").toLowerCase()) {
-      case "completed":
-        return "status completed";
-      case "checked-in":
-        return "status checkedin";
-      case "cancelled":
-        return "status cancelled";
-      case "no-show":
-        return "status noshow";
-      default:
-        return "status pending";
-    }
+  const handleFilterChange = (filterName, value) => {
+    setFilters({ ...filters, [filterName]: value });
   };
 
+  const today = new Date().toISOString().split("T")[0];
+
+  let filtered = appointments
+    .filter((apt) => filters.status === "All" || apt.status === filters.status)
+    .filter((apt) => {
+      if (filters.date === "All Dates") return true;
+      if (filters.date === "Past") return apt.date < today;
+      if (filters.date === "Today") return apt.date === today;
+      if (filters.date === "Upcoming") return apt.date > today;
+      return true;
+    })
+    .filter((apt) => {
+      const s = searchTerm.toLowerCase();
+      return (
+        apt.patientName?.toLowerCase().includes(s) ||
+        apt.doctorName?.toLowerCase().includes(s) ||
+        apt.reason?.toLowerCase().includes(s)
+      );
+    });
+
+  filtered.sort((a, b) => {
+    if (filters.sort === "Date") return new Date(a.date) - new Date(b.date);
+    if (filters.sort === "Patient Name") return (a.patientName || "").localeCompare(b.patientName || "");
+    if (filters.sort === "Doctor Name") return (a.doctorName || "").localeCompare(b.doctorName || "");
+    if (filters.sort === "Status") return (a.status || "").localeCompare(b.status || "");
+    return 0;
+  });
+
+  const filterOptions = [
+    {
+      id: "date",
+      label: "Date",
+      value: filters.date,
+      options: ["All Dates", "Past", "Today", "Upcoming"],
+      placeholder: "Search by patient, doctor, or reason...",
+    },
+    {
+      id: "status",
+      label: "Status",
+      value: filters.status,
+      options: ["All", "Pending", "Confirmed", "Checked-in", "Completed", "Cancelled", "No-Show"],
+    },
+    {
+      id: "sort",
+      label: "Sort by",
+      value: filters.sort,
+      options: ["Date", "Patient Name", "Doctor Name", "Status"],
+    },
+  ];
+
   return (
-    <div className="appointment-page">
-      <h2>Appointments</h2>
-
-      {/* Filters */}
-      <div className="appoint-filters">
-        <input
-          type="text"
-          placeholder="Search patient, doctor or reason..."
-          className="search-input"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-
-        <select
-          className="filter-select"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+    <div className="clinic-content-box">
+      <div className="clinic-page-header">
+        <h2>📅 Appointment Centre</h2>
+        <button
+          className="clinic-btn-primary"
+          onClick={() => {
+            setSelectedAppointment(null);
+            setShowForm(true);
+          }}
         >
-          <option value="all">All Status</option>
-          <option value="Pending">Pending</option>
-          <option value="checked-in">Checked-In</option>
-          <option value="Completed">Completed</option>
-          <option value="cancelled">Cancelled</option>
-          <option value="no-show">No-Show</option>
-        </select>
-
-        <select
-          className="filter-select"
-          value={dateFilter}
-          onChange={(e) => setDateFilter(e.target.value)}
-        >
-          <option value="all">All Dates</option>
-          <option value="today">Today</option>
-          <option value="upcoming">Upcoming</option>
-        </select>
+          ➕ Add New
+        </button>
       </div>
 
-      <button className="add-btn" onClick={() => setSelectedAppointment(null)}>
-        ➕ Add New Appointment
-      </button>
+      <FilterBar
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        filters={filterOptions}
+        onFilterChange={handleFilterChange}
+      />
 
-      {/* Table */}
       {filtered.length === 0 ? (
-        <p>No appointments match your filters.</p>
+        <p style={{ textAlign: "center", padding: "20px", color: "#666" }}>
+          No appointments found
+        </p>
       ) : (
         <table className="clinic-table">
           <thead>
@@ -146,25 +105,36 @@ const AppointmentsPage = () => {
               <th>Patient</th>
               <th>Doctor</th>
               <th>Reason</th>
+              <th>Room</th>
               <th>Status</th>
-              <th>Manage</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((a) => (
-              <tr key={a.id}>
-                <td>{a.date}</td>
-                <td>{a.time}</td>
-                <td>{a.patientName}</td>
-                <td>{a.doctorName}</td>
-                <td>{a.reason}</td>
+            {filtered.map((apt) => (
+              <tr key={apt.id}>
+                <td>{apt.date}</td>
+                <td>{apt.time}</td>
+                <td>{apt.patientName}</td>
+                <td>{apt.doctorName || "N/A"}</td>
+                <td>{apt.reason}</td>
+                <td>{apt.room || "-"}</td>
                 <td>
-                  <span className={statusClass(a.status)}>{a.status}</span>
+                  <span
+                    className={`status-badge status-${(apt.status || "pending")
+                      .toLowerCase()
+                      .replace(" ", "-")}`}
+                  >
+                    {apt.status}
+                  </span>
                 </td>
                 <td>
                   <button
-                    className="manage-btn"
-                    onClick={() => setSelectedAppointment(a)}
+                    className="clinic-btn-small"
+                    onClick={() => {
+                      setSelectedAppointment(apt);
+                      setShowForm(true);
+                    }}
                   >
                     Manage
                   </button>
@@ -175,13 +145,12 @@ const AppointmentsPage = () => {
         </table>
       )}
 
-      {/* Manage Panel */}
-      <div style={{ marginTop: "20px" }}>
+      {showForm && (
         <ManageAppointments
           appointment={selectedAppointment}
-          doctors={doctors}
+          onClose={() => setShowForm(false)}
         />
-      </div>
+      )}
     </div>
   );
 };

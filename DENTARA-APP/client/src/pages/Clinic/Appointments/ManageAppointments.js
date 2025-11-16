@@ -1,270 +1,123 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  updateAppointment,
-  deleteAppointment,
-  addNewAppointment,
-} from "../../../services/appointmentsService";
+import { updateAppointment, deleteAppointment, addNewAppointment } from "../../../services/appointmentsService";
 import { listenToDoctors } from "../../../services/usersService";
-import { getPatientsByDoctor } from "../../../services/patientsService";
+import { listenToAllPatients } from "../../../services/patientsService";
+import "../../../styles/ClinicDashboard.css";
 
 const ManageAppointments = ({ appointment, onClose }) => {
-  const isNew = !appointment || !appointment.id;
+  const isNew = !appointment?.id;
   const formRef = useRef(null);
-
   const [doctors, setDoctors] = useState([]);
   const [patients, setPatients] = useState([]);
   const [loadingPatients, setLoadingPatients] = useState(false);
-
   const [form, setForm] = useState({
-    doctorId: "",
-    patientId: "",
-    patientName: "",
-    date: "",
-    time: "",
-    reason: "",
-    room: "",
-    status: "Pending",
+    doctorId: "", patientId: "", date: "", time: "", reason: "", room: "", status: "Pending",
   });
 
-  // Fetch doctors 
   useEffect(() => {
-    const unsubscribe = listenToDoctors((doctorsList) => {
-      setDoctors(doctorsList);
+    listenToDoctors(setDoctors);
+    listenToAllPatients((list) => {
+      if (appointment?.doctorId) {
+        setPatients(list.filter((p) => p.doctorId === appointment.doctorId));
+      }
     });
-    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
     if (!appointment) {
-      // Reset form for new appointment
-      setForm({
-        doctorId: "",
-        patientId: "",
-        patientName: "",
-        date: "",
-        time: "",
-        reason: "",
-        room: "",
-        status: "Pending",
-      });
-      setPatients([]);
+      setForm({ doctorId: "", patientId: "", date: "", time: "", reason: "", room: "", status: "Pending" });
     } else {
-      // Load appointment data
       setForm({
         doctorId: appointment.doctorId || "",
         patientId: appointment.patientId || "",
-        patientName: appointment.patientName || "",
         date: appointment.date || "",
         time: appointment.time || "",
         reason: appointment.reason || "",
         room: appointment.room || "",
         status: appointment.status || "Pending",
       });
-
-      // Load patients for selected doctor
-      if (appointment.doctorId) {
-        loadPatientsForDoctor(appointment.doctorId);
-      }
     }
-
-    setTimeout(() => {
-      if (formRef.current) {
-        formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }, 100);
+    formRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [appointment]);
-
-  // Load patients when doctor is selected
-  const loadPatientsForDoctor = async (doctorId) => {
-    if (!doctorId) {
-      setPatients([]);
-      return;
-    }
-
-    try {
-      setLoadingPatients(true);
-      const patientsList = await getPatientsByDoctor(doctorId);
-      setPatients(patientsList);
-      setLoadingPatients(false);
-    } catch (error) {
-      console.error("Error loading patients:", error);
-      setPatients([]);
-      setLoadingPatients(false);
-    }
-  };
 
   const updateField = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
-
-    // When doctor changes, load their patients
     if (field === "doctorId") {
-      loadPatientsForDoctor(value);
-      setForm((prev) => ({ ...prev, patientId: "", patientName: "" }));
-    }
-
-    // When patient changes, update patientName
-    if (field === "patientId" && value) {
-      const selectedPatient = patients.find((p) => p.id === value);
-      if (selectedPatient) {
-        setForm((prev) => ({
-          ...prev,
-          patientName: `${selectedPatient.firstName} ${selectedPatient.lastName}`,
-        }));
-      }
+      setLoadingPatients(true);
+      const doctorPatients = doctors.find((d) => d.id === value);
+      setPatients(doctors.filter((d) => d.id === value).length > 0 ? [] : []);
+      setLoadingPatients(false);
     }
   };
 
   const handleSave = async () => {
     if (!form.doctorId || !form.patientId || !form.date || !form.time || !form.reason) {
-      alert("Please fill in all required fields (Doctor, Patient, Date, Time, Reason)!");
+      alert("Fill all required fields!");
       return;
     }
-
     try {
-      if (isNew) {
-        await addNewAppointment(form);
-        alert("Appointment added successfully!");
-      } else {
-        await updateAppointment(appointment.id, form);
-        alert("Appointment updated successfully!");
-      }
-
-      if (onClose) {
-        onClose();
-      } else {
-        setForm({
-          doctorId: "",
-          patientId: "",
-          patientName: "",
-          date: "",
-          time: "",
-          reason: "",
-          room: "",
-          status: "Pending",
-        });
-        setPatients([]);
-      }
+      const selectedDoctor = doctors.find((d) => d.id === form.doctorId);
+      const selectedPatient = patients.find((p) => p.id === form.patientId);
+      const data = {
+        ...form,
+        doctorName: selectedDoctor?.fullName,
+        patientName: `${selectedPatient?.firstName} ${selectedPatient?.lastName}`,
+        patientAge: selectedPatient?.age,
+        patientPhone: selectedPatient?.phone,
+        status: isNew ? "Pending" : form.status,
+      };
+      isNew ? await addNewAppointment(data) : await updateAppointment(appointment.id, data);
+      alert("✅ Appointment " + (isNew ? "added" : "updated") + "!");
+      onClose?.();
     } catch (error) {
-      console.error("Error saving appointment:", error);
-      alert("Failed to save appointment: " + error.message);
+      alert("❌ Error: " + error.message);
     }
   };
 
   const handleDelete = async () => {
-    if (isNew) return;
-    if (!window.confirm("Are you sure you want to delete this appointment?")) return;
-
+    if (!window.confirm("Delete this appointment?")) return;
     try {
       await deleteAppointment(appointment.id);
-      alert("Appointment deleted successfully!");
-      if (onClose) onClose();
+      alert("✅ Deleted!");
+      onClose?.();
     } catch (error) {
-      console.error("Error deleting appointment:", error);
-      alert("Failed to delete appointment");
+      alert("❌ Error: " + error.message);
     }
   };
 
   return (
     <div className="manage-box" ref={formRef}>
       <div className="manage-header">
-        <h3>{isNew ? "➕ Add New Appointment" : "✏️ Edit Appointment"}</h3>
-        {onClose && (
-          <button className="close-btn" onClick={onClose}>
-            ✖
-          </button>
-        )}
+        <h3>{isNew ? "➕ Add Appointment" : "✏️ Edit Appointment"}</h3>
+        <button className="close-btn" onClick={onClose}>✖</button>
       </div>
-
       <div className="manage-form">
-        <select
-          value={form.doctorId}
-          onChange={(e) => updateField("doctorId", e.target.value)}
-          required
-        >
+        <select value={form.doctorId} onChange={(e) => updateField("doctorId", e.target.value)} required className="form-input">
           <option value="">Select Doctor *</option>
-          {doctors.map((doc) => (
-            <option key={doc.id} value={doc.id}>
-              {doc.fullName}
-            </option>
-          ))}
+          {doctors.map((d) => <option key={d.id} value={d.id}>{d.fullName}</option>)}
         </select>
-        <select
-          value={form.status}
-          onChange={(e) => updateField("status", e.target.value)}
-        >
-          <option value="Pending">Pending</option>
-          <option value="Confirmed">Confirmed</option>
-          <option value="In Progress">In Progress</option>
-          <option value="Completed">Completed</option>
-          <option value="Cancelled">Cancelled</option>
-          <option value="No-Show">No-Show</option>
+        <select value={form.patientId} onChange={(e) => updateField("patientId", e.target.value)} required className="form-input" disabled={!form.doctorId || loadingPatients}>
+          <option value="">{!form.doctorId ? "Select Doctor First" : "Select Patient *"}</option>
+          {patients.map((p) => <option key={p.id} value={p.id}>{p.firstName} {p.lastName} ({p.age} yrs)</option>)}
         </select>
-        {!form.doctorId ? (
-          <select disabled>
-            <option>Select Doctor First</option>
-          </select>
-        ) : loadingPatients ? (
-          <select disabled>
-            <option>Loading Patients...</option>
-          </select>
-        ) : patients.length === 0 ? (
-          <select disabled>
-            <option>No Patients Found</option>
-          </select>
-        ) : (
-          <select
-            value={form.patientId}
-            onChange={(e) => updateField("patientId", e.target.value)}
-            required
-          >
-            <option value="">Select Patient *</option>
-            {patients.map((patient) => (
-              <option key={patient.id} value={patient.id}>
-                {patient.firstName} {patient.lastName} ({patient.age} yrs)
-              </option>
-            ))}
-          </select>
-        )}
-        <input
-          type="date"
-          value={form.date}
-          onChange={(e) => updateField("date", e.target.value)}
-          required
-        />
-
-        <input
-          type="time"
-          value={form.time}
-          onChange={(e) => updateField("time", e.target.value)}
-          required
-        />
-
-        <input
-          type="text"
-          placeholder="Room (e.g., Room 1)"
-          value={form.room}
-          onChange={(e) => updateField("room", e.target.value)}
-        />
-
-        <input
-          type="text"
-          placeholder="Reason for Visit (e.g., Cleaning, Filling, Root Canal) *"
-          value={form.reason}
-          onChange={(e) => updateField("reason", e.target.value)}
-          required
-        />
-      </div>
-
-      <div className="manage-actions">
-        <button className="save-btn" onClick={handleSave}>
-          💾 {isNew ? "Add Appointment" : "Save Changes"}
-        </button>
-
+        <input type="date" value={form.date} onChange={(e) => updateField("date", e.target.value)} required className="form-input" />
+        <input type="time" value={form.time} onChange={(e) => updateField("time", e.target.value)} required className="form-input" />
+        <input type="text" placeholder="Reason *" value={form.reason} onChange={(e) => updateField("reason", e.target.value)} required className="form-input" />
+        <input type="text" placeholder="Room" value={form.room} onChange={(e) => updateField("room", e.target.value)} className="form-input" />
         {!isNew && (
-          <button className="delete-btn" onClick={handleDelete}>
-            🗑 Delete Appointment
-          </button>
+          <select value={form.status} onChange={(e) => updateField("status", e.target.value)} className="form-input">
+            <option>Pending</option>
+            <option>Confirmed</option>
+            <option>Checked-in</option>
+            <option>Completed</option>
+            <option>Cancelled</option>
+            <option>No-Show</option>
+          </select>
         )}
+      </div>
+      <div className="manage-actions">
+        <button className="save-btn" onClick={handleSave}>💾 {isNew ? "Add" : "Save"}</button>
+        {!isNew && <button className="delete-btn" onClick={handleDelete}>🗑 Delete</button>}
       </div>
     </div>
   );
