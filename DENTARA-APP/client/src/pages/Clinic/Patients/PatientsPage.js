@@ -28,7 +28,7 @@ const PatientsPage = () => {
   return (
     <div className="clinic-content-box">
       <div className="clinic-page-header">
-        <h2>👨‍⚕️ Doctors & Their Patients</h2>
+        <h2> Doctors & Their Patients</h2>
         <button
           className="clinic-btn-primary"
           onClick={() => navigate("/staff-dashboard/patients/all")}
@@ -47,7 +47,6 @@ const PatientsPage = () => {
               className="doctor-card"
               onClick={() => navigate(`/staff-dashboard/patients/doctor/${doctor.id}`)}
             >
-              <div className="doctor-icon">👨‍⚕️</div>
               <h3>{doctor.fullName}</h3>
               <p className="doctor-email">{doctor.email}</p>
               <button className="clinic-btn-secondary">View Patients →</button>
