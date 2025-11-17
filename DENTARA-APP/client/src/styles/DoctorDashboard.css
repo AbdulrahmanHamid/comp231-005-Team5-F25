@@ -246,3 +246,172 @@
 .action-btn:hover {
   background-color: #e4f5d2;
 }
+.kpi-button {
+  background-color: #78d494;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  margin-top: 15px;
+  transition: all 0.3s ease;
+}
+
+.kpi-button:hover {
+  background-color: #47b86d;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.back-btn {
+  background-color: #a6e4b6;
+  border: 2px solid #78d494;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 600;
+  color: #00401c;
+  cursor: pointer;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+  background-color: #78d494;
+  color: white;
+}
+
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin: 20px 0;
+  border-bottom: 2px solid #a6e4b6;
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  background-color: #f5faf5;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-weight: 600;
+  color: #00401c;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.tab-btn.active {
+  background-color: #78d494;
+  color: white;
+  border-bottom-color: #47b86d;
+}
+
+.tab-content {
+  padding: 20px;
+  background-color: white;
+  border-radius: 8px;
+}
+
+.notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.note-card {
+  background-color: #f5faf5;
+  border: 2px solid #a6e4b6;
+  border-radius: 8px;
+  padding: 15px;
+}
+
+.note-header {
+  font-weight: 600;
+  color: #78d494;
+  margin-bottom: 10px;
+}
+
+.note-body {
+  margin-bottom: 10px;
+  color: #2d2d2d;
+  line-height: 1.5;
+}
+
+.note-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.no-data {
+  text-align: center;
+  color: #999;
+  padding: 20px;
+  font-style: italic;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.status-completed {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-pending {
+  background-color: #fff3cd;
+  color: #856404;
+}
+.chart-container {
+  background-color: white;
+  border: 2px solid #a6e4b6;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  max-height: 400px;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.kpi-card {
+  background: linear-gradient(135deg, #f5faf5 0%, #ffffff 100%);
+  border: 2px solid #a6e4b6;
+  border-radius: 12px;
+  padding: 15px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.kpi-card h4 {
+  color: #78d494;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+  font-size: 0.9rem;
+}
+
+.kpi-number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #7e5cfb;
+  margin: 10px 0;
+}
+
+.kpi-card small {
+  color: #999;
+  font-size: 0.85rem;
+  display: block;
+}

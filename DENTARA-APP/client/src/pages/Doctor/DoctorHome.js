@@ -21,18 +21,15 @@ const DoctorHome = () => {
   useEffect(() => {
     if (!currentUser) return;
 
-    // Fetch doctor info
     getDoctorInfo(currentUser.uid).then((info) => {
       if (info) setDoctorName(info.fullName);
     });
 
-    // get today's appointments
     const unsubscribeAppointments = listenToDoctorTodayAppointments(
       currentUser.uid,
       (appointmentsList) => {
         setAppointments(appointmentsList);
 
-        // Calculate stats
         const completed = appointmentsList.filter(a => a.status === 'Completed').length;
         const pending = appointmentsList.filter(a => a.status === 'Pending' || a.status === 'Confirmed').length;
         const noShows = appointmentsList.filter(a => a.status === 'Cancelled' || a.status === 'No-Show').length;
@@ -48,7 +45,6 @@ const DoctorHome = () => {
       }
     );
 
-    // Listen to alerts
     const unsubscribeAlerts = listenToDoctorAlerts(
       currentUser.uid,
       (alertsList) => {
@@ -65,7 +61,6 @@ const DoctorHome = () => {
   const handleAcknowledgeAlert = async (alertId) => {
     try {
       await acknowledgeAlert(alertId);
-      // Alert will be removed automatically by listener
     } catch (error) {
       console.error('Error acknowledging alert:', error);
     }
@@ -73,19 +68,6 @@ const DoctorHome = () => {
 
   const handleViewPatient = (patientId) => {
     navigate(`/doctor-dashboard/patients/${patientId}`);
-  };
-
-  const handleAddClinicalNote = () => {
-    navigate('/doctor-dashboard/patients');
-    alert('Please select a patient to add a clinical note');
-  };
-
-  const handleScheduleTreatment = () => {
-    navigate('/doctor-dashboard/schedule');
-  };
-
-  const handleViewFollowUps = () => {
-    alert('Follow-ups feature: This will show all patients needing follow-up visits');
   };
 
   if (loading) {
@@ -102,11 +84,14 @@ const DoctorHome = () => {
           <strong> No-Shows/Cancelled:</strong> {stats.noShows}
         </p>
         <p><strong>Total Appointments:</strong> {stats.total}</p>
+        <button className="kpi-button" onClick={() => navigate('/doctor-dashboard/kpis')}>
+          📊 View Daily KPI Report
+        </button>
       </section>
 
       <div className="middle-panels">
         <section className="schedule">
-          <h3>Today's Schedule</h3>
+          <h3>📅 Today's Schedule (Latest 8)</h3>
           {appointments.length === 0 ? (
             <p>No appointments scheduled for today</p>
           ) : (
@@ -115,15 +100,23 @@ const DoctorHome = () => {
                 <tr>
                   <th>Time</th>
                   <th>Patient</th>
+                  <th>Reason</th>
+                  <th>Room</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {appointments.slice(0, 5).map(apt => (
+                {appointments.slice(0, 8).map(apt => (
                   <tr key={apt.id}>
                     <td>{apt.time}</td>
                     <td>{apt.patientName}</td>
-                    <td>{apt.status}</td>
+                    <td>{apt.reason}</td>
+                    <td>{apt.room || '-'}</td>
+                    <td>
+                      <span className={`status-badge status-${apt.status.toLowerCase().replace(' ', '-')}`}>
+                        {apt.status}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -132,7 +125,7 @@ const DoctorHome = () => {
         </section>
 
         <section className="alerts">
-          <h3>Alerts & Urgent Cases</h3>
+          <h3>⚠️ Alerts & Urgent Cases</h3>
           {alerts.length === 0 ? (
             <p>No pending alerts</p>
           ) : (
@@ -166,14 +159,11 @@ const DoctorHome = () => {
       <section className="quick-actions">
         <h3>Quick Actions</h3>
         <div className="quick-buttons">
-          <button className="action-btn" onClick={handleAddClinicalNote}>
-            ➕ Add Clinical Note
+          <button className="action-btn" onClick={() => navigate('/doctor-dashboard/schedule')}>
+            📅 Schedule
           </button>
-          <button className="action-btn" onClick={handleScheduleTreatment}>
-            📅 Schedule Treatment
-          </button>
-          <button className="action-btn" onClick={handleViewFollowUps}>
-            🗂️ View Follow-Ups
+          <button className="action-btn" onClick={() => navigate('/doctor-dashboard/patients')}>
+            👥 Patients
           </button>
         </div>
       </section>
