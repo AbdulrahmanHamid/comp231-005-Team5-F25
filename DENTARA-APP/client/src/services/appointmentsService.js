@@ -1,5 +1,4 @@
 // Firestore appointment + utilities file
-// Done by Vaibhav Kalia
 // This file centralizes all read/write logic for the "appointments" collection
 // so the rest of the app can use simple functions instead of calling Firestore directly.
 
