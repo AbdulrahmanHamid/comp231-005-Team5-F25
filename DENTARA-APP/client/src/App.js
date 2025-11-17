@@ -4,7 +4,6 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import './App.css';
 
 // Main routing and role-based dashboard setup
-// Done by Vaibhav Kalia
 // Reason: Centralizes all app routes and applies role-based protection in one place.
 
 import Home from './pages/Home/Home';
@@ -17,6 +16,7 @@ import DoctorDashboard from './pages/Doctor/DoctorDashboard';
 import DoctorHome from './pages/Doctor/DoctorHome';
 import DoctorSchedule from './pages/Doctor/DoctorSchedule';
 import DoctorPatients from './pages/Doctor/DoctorPatients';
+import DoctorKPIsView from "./pages/Doctor/DoctorKPIsView";
 
 import ClinicDashboard from './pages/Clinic/ClinicDashboard';
 import ClinicHome from './pages/Clinic/ClinicHome';
@@ -61,7 +61,7 @@ const ManagerDashboard = () => {
             <p>Welcome! This is your Manager Dashboard.</p>
             <button
                 onClick={logout}
-                // Improved button styling for better UI look — Done by Vaibhav Kalia
+                // Improved button styling for better UI look ï¿½ Done by Vaibhav Kalia
                 style={{
                     padding: '12px 30px',
                     fontSize: '16px',
@@ -143,6 +143,7 @@ function App() {
                         <Route index element={<Navigate to="home" replace />} />
                         <Route path="home" element={<DoctorHome />} />
                         <Route path="schedule" element={<DoctorSchedule />} />
+                        <Route path="kpis" element={<DoctorKPIsView />} />
                         <Route path="patients/*" element={<DoctorPatients />} />
                     </Route>
 
