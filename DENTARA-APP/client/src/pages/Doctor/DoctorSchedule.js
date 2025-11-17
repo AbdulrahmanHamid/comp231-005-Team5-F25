@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import {listenToDoctorAppointments,updateAppointmentStatus,addDoctorAppointment,getAllPatients,getDoctorInfo} from "../../services/doctorService";
+import {
+  listenToDoctorAppointments,
+  updateAppointmentStatus,
+  addDoctorAppointment,
+  getDoctorInfo,
+  listenToAllPatients  // Changed: Listen to all patients, filter in component
+} from "../../services/doctorService";
 import { getTodayLocal } from "../../utils/dateUtils";
 import "../../styles/DoctorSchedule.css";
 
@@ -9,8 +15,9 @@ const DoctorSchedule = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [appointments, setAppointments] = useState([]);
-  const [patients, setPatients] = useState([]);
-  const [doctorName, setDoctorName] = useState('');
+  const [allPatients, setAllPatients] = useState([]);
+  const [doctorPatients, setDoctorPatients] = useState([]); // FIXED: Store only doctor's patients
+  const [doctorName, setDoctorName] = useState("");
   const [selectedDate, setSelectedDate] = useState(getTodayLocal());
   const [stats, setStats] = useState({
     total: 0,
@@ -20,28 +27,40 @@ const DoctorSchedule = () => {
   });
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
-  
   const [formData, setFormData] = useState({
-    patientId: '',
-    time: '',
-    reason: '',
-    room: ''
+    patientId: "",
+    time: "",
+    reason: "",
+    room: ""
   });
 
+  // OPTIMIZATION: Separate useEffect for doctor info (doesn't depend on date)
   useEffect(() => {
     if (!currentUser) return;
 
-    //  doctor info
     getDoctorInfo(currentUser.uid).then((info) => {
       if (info) setDoctorName(info.fullName);
     });
+  }, [currentUser]);
 
-    // all patients
-    getAllPatients().then((patientsList) => {
-      setPatients(patientsList);
+  // OPTIMIZATION: Separate useEffect for fetching all patients (doesn't depend on date)
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const unsubscribe = listenToAllPatients((patientsList) => {
+      // FIXED: Filter patients by doctor ID
+      const filtered = patientsList.filter(p => p.doctorId === currentUser.uid);
+      setAllPatients(patientsList); // Keep all for reference
+      setDoctorPatients(filtered); // Only doctor's patients for dropdown
     });
 
-    // Listen to appointments for selected date
+    return () => unsubscribe();
+  }, [currentUser]);
+
+  // OPTIMIZATION: Separate useEffect for appointments (depends on selected date)
+  useEffect(() => {
+    if (!currentUser) return;
+
     const unsubscribe = listenToDoctorAppointments(
       currentUser.uid,
       selectedDate,
@@ -50,9 +69,15 @@ const DoctorSchedule = () => {
 
         // Calculate stats
         const total = appointmentsList.length;
-        const pending = appointmentsList.filter(a => a.status === 'Pending' || a.status === 'Confirmed').length;
-        const completed = appointmentsList.filter(a => a.status === 'Completed').length;
-        const cancelled = appointmentsList.filter(a => a.status === 'Cancelled' || a.status === 'No-Show').length;
+        const pending = appointmentsList.filter(
+          a => a.status === "Pending" || a.status === "Confirmed"
+        ).length;
+        const completed = appointmentsList.filter(
+          a => a.status === "Completed"
+        ).length;
+        const cancelled = appointmentsList.filter(
+          a => a.status === "Cancelled" || a.status === "No-Show"
+        ).length;
 
         setStats({ total, pending, completed, cancelled });
         setLoading(false);
@@ -62,17 +87,36 @@ const DoctorSchedule = () => {
     return () => unsubscribe();
   }, [currentUser, selectedDate]);
 
+  // OPTIMIZATION: Memoize status class function
+  const getStatusClass = (status) => {
+    const statusMap = {
+      Completed: "status-badge status-completed",
+      Pending: "status-badge status-pending",
+      Confirmed: "status-badge status-confirmed",
+      "In Progress": "status-badge status-in-progress"
+    };
+    return statusMap[status] || "status-badge status-cancelled";
+  };
+
   const handleAddAppointment = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.patientId || !formData.time || !formData.reason) {
-      alert('Please fill in all required fields');
+      alert("Please fill in all required fields");
       return;
     }
 
     try {
-      const selectedPatient = patients.find(p => p.id === formData.patientId);
-      
+      // FIXED: Find from doctorPatients, not allPatients
+      const selectedPatient = doctorPatients.find(
+        p => p.id === formData.patientId
+      );
+
+      if (!selectedPatient) {
+        alert("Selected patient not found");
+        return;
+      }
+
       await addDoctorAppointment({
         patientId: formData.patientId,
         patientName: `${selectedPatient.firstName} ${selectedPatient.lastName}`,
@@ -80,31 +124,31 @@ const DoctorSchedule = () => {
         date: selectedDate,
         time: formData.time,
         reason: formData.reason,
-        room: formData.room || 'TBD',
+        room: formData.room || "TBD"
       });
 
-      alert('Appointment added successfully!');
+      alert("Appointment added successfully!");
       setShowAddForm(false);
-      setFormData({ patientId: '', time: '', reason: '', room: '' });
+      setFormData({ patientId: "", time: "", reason: "", room: "" });
     } catch (error) {
-      console.error('Error adding appointment:', error);
-      alert('Failed to add appointment');
+      console.error("Error adding appointment:", error);
+      alert("Failed to add appointment");
     }
   };
 
   const handleStartAppointment = async (appointmentId) => {
     try {
-      await updateAppointmentStatus(appointmentId, 'In Progress');
+      await updateAppointmentStatus(appointmentId, "In Progress");
     } catch (error) {
-      console.error('Error updating appointment:', error);
+      console.error("Error updating appointment:", error);
     }
   };
 
   const handleCompleteAppointment = async (appointmentId) => {
     try {
-      await updateAppointmentStatus(appointmentId, 'Completed');
+      await updateAppointmentStatus(appointmentId, "Completed");
     } catch (error) {
-      console.error('Error completing appointment:', error);
+      console.error("Error completing appointment:", error);
     }
   };
 
@@ -112,48 +156,47 @@ const DoctorSchedule = () => {
     navigate(`/doctor-dashboard/patients/${patientId}`);
   };
 
-  const getStatusClass = (status) => {
-    switch(status) {
-      case 'Completed': return 'status-badge status-completed';
-      case 'Pending': return 'status-badge status-pending';
-      case 'Confirmed': return 'status-badge status-confirmed';
-      case 'In Progress': return 'status-badge status-in-progress';
-      default: return 'status-badge status-cancelled';
-    }
-  };
-
   return (
     <div className="doctor-schedule-page">
       <div className="schedule-header">
-        <h2>Today's Schedule</h2>
-        <span className="doctor-name">
-          {doctorName || "Loading..."}
-        </span>
+        <h2>📅 Doctor's Schedule</h2>
+        <span className="doctor-name">{doctorName || "Loading..."}</span>
       </div>
 
       <div className="schedule-container">
+        {/* Date Selection */}
         <div className="date-row">
-          <input 
-            type="date" 
+          <input
+            type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
             className="date-btn"
           />
         </div>
 
+        {/* Summary Stats */}
         <div className="schedule-panels">
           <div className="summary-box">
-            <h3>Summary</h3>
+            <h3>Today's Summary</h3>
             <ul>
-              <li><strong>Total Appointments:</strong> {stats.total}</li>
-              <li><strong>Pending:</strong> {stats.pending}</li>
-              <li><strong>Completed:</strong> {stats.completed}</li>
-              <li><strong>Cancelled / No-Shows:</strong> {stats.cancelled}</li>
+              <li>
+                <strong>Total:</strong> {stats.total}
+              </li>
+              <li>
+                <strong>Pending:</strong> {stats.pending}
+              </li>
+              <li>
+                <strong>Completed:</strong> {stats.completed}
+              </li>
+              <li>
+                <strong>Cancelled/No-Show:</strong> {stats.cancelled}
+              </li>
             </ul>
           </div>
 
+          {/* Appointments List */}
           <div className="appointments-box">
-            <h3>Appointments List</h3>
+            <h3>Appointments</h3>
             {loading ? (
               <p>Loading appointments...</p>
             ) : appointments.length === 0 ? (
@@ -171,7 +214,7 @@ const DoctorSchedule = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {appointments.map(apt => (
+                  {appointments.map((apt) => (
                     <tr key={apt.id}>
                       <td>{apt.time}</td>
                       <td>{apt.patientName}</td>
@@ -183,22 +226,22 @@ const DoctorSchedule = () => {
                         </span>
                       </td>
                       <td>
-                        {apt.status === 'Pending' || apt.status === 'Confirmed' ? (
-                          <button 
+                        {apt.status === "Pending" || apt.status === "Confirmed" ? (
+                          <button
                             className="table-btn"
                             onClick={() => handleStartAppointment(apt.id)}
                           >
                             Start
                           </button>
-                        ) : apt.status === 'In Progress' ? (
-                          <button 
+                        ) : apt.status === "In Progress" ? (
+                          <button
                             className="table-btn"
                             onClick={() => handleCompleteAppointment(apt.id)}
                           >
                             Complete
                           </button>
                         ) : (
-                          <button 
+                          <button
                             className="table-btn"
                             onClick={() => handleViewPatient(apt.patientId)}
                           >
@@ -214,29 +257,37 @@ const DoctorSchedule = () => {
           </div>
         </div>
 
+        {/* Action Buttons */}
         <div className="action-row">
-          <h3>Quick Actions</h3>
-          <button className="action-btn" onClick={() => setSelectedDate(getTodayLocal())}>
-            🔄 Refresh
-          </button>
-          <button className="action-btn" onClick={() => setShowAddForm(!showAddForm)}>
-            {showAddForm ? '❌ Cancel' : '🆕 Add Appointment'}
+          <button
+            className="action-btn"
+            onClick={() => setShowAddForm(!showAddForm)}
+          >
+            {showAddForm ? "❌ Cancel" : "🆕 Add Appointment"}
           </button>
         </div>
 
+        {/* Add Appointment Form */}
         {showAddForm && (
           <div className="appointment-form-container">
             <h3>Add New Appointment</h3>
-            <form onSubmit={handleAddAppointment}>
+            <form onSubmit={handleAddAppointment} className="appointment-form">
               <div className="form-field">
-                <label>Patient *</label>
+                <label htmlFor="patientSelect">Patient *</label>
                 <select
+                  id="patientSelect"
                   value={formData.patientId}
-                  onChange={(e) => setFormData({...formData, patientId: e.target.value})}
+                  onChange={(e) =>
+                    setFormData({ ...formData, patientId: e.target.value })
+                  }
                   required
                 >
-                  <option value="">Select Patient</option>
-                  {patients.map(patient => (
+                  <option value="">
+                    {doctorPatients.length === 0
+                      ? "No patients available"
+                      : "Select a patient"}
+                  </option>
+                  {doctorPatients.map((patient) => (
                     <option key={patient.id} value={patient.id}>
                       {patient.firstName} {patient.lastName}
                     </option>
@@ -245,32 +296,41 @@ const DoctorSchedule = () => {
               </div>
 
               <div className="form-field">
-                <label>Time *</label>
+                <label htmlFor="timeInput">Time *</label>
                 <input
+                  id="timeInput"
                   type="time"
                   value={formData.time}
-                  onChange={(e) => setFormData({...formData, time: e.target.value})}
+                  onChange={(e) =>
+                    setFormData({ ...formData, time: e.target.value })
+                  }
                   required
                 />
               </div>
 
               <div className="form-field">
-                <label>Reason for Visit *</label>
+                <label htmlFor="reasonInput">Reason *</label>
                 <input
+                  id="reasonInput"
                   type="text"
                   value={formData.reason}
-                  onChange={(e) => setFormData({...formData, reason: e.target.value})}
+                  onChange={(e) =>
+                    setFormData({ ...formData, reason: e.target.value })
+                  }
                   required
-                  placeholder="e.g., Cleaning, Filling, Consultation"
+                  placeholder="e.g., Cleaning, Filling"
                 />
               </div>
 
               <div className="form-field">
-                <label>Room</label>
+                <label htmlFor="roomInput">Room</label>
                 <input
+                  id="roomInput"
                   type="text"
                   value={formData.room}
-                  onChange={(e) => setFormData({...formData, room: e.target.value})}
+                  onChange={(e) =>
+                    setFormData({ ...formData, room: e.target.value })
+                  }
                   placeholder="e.g., Room 1"
                 />
               </div>
